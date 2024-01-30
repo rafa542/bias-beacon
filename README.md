@@ -1,2 +1,2 @@
-# bias-beacon
+# Bias Beacon
 Bias Beacon
