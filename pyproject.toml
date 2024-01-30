@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.poetry]
+name = "bias-beacon"
+version = "0.1.0"
+description = "Bias identification plugin to help readers identify and understand the bias of their media sources"
+#authors = ["Your Name <youremail@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+# Add your project dependencies here
+# For example, if you need requests, you can add:
+# requests = "^2.25.1"
+
+[tool.poetry.dev-dependencies]
+# pytest = "^6.2.2"
+
+[tool.poetry.scripts]
+run-model = 'model.dummy_model:generate_bias'
