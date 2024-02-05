@@ -1,0 +1,66 @@
+Developing the Plugin
+
+- Build for 3-5 specific article sites, then generalize
+- Consider doing it on the server side
+
+- Find the specific divs
+- Create a basic version and put it in the store
+- Ship consistently, ASAP
+- Are you following the permissions, don’t like remote-hosted code
+
+
+- Chrome extension is just a folder
+- Can upload it manually, or upload it to the store (browser downloads the zip)
+
+- Browser looks for the folder
+
+- 1 necessary files - manifest.json
+    - name of extension
+    - version
+    - permissions
+    - Tell where the html/javascript for that
+    - The settings
+    - Permissions to put certain assets into the web pages
+    - Can specify which web pages you want to access
+    - Up to 3-4 weeks time
+    - Keep permissions to a minimum
+
+- Chrome extension source viewer (view source code of other extensions)
+    - All source code is public
+
+- Use google dev docs for v3 - make sure things are in V3
+- Might need certain permissions to know what sites they’ve visiting
+- Permissions: Cookies, storage, web requests
+    - tabs is invasive, info about tabs, what tabs are open/closing
+
+- Background script -> is now service workers
+
+Extensions
+- Background / Service workers script (asynchronous)
+    - Control centre for the app
+    - Minimize amount of code you inject into the page and the amount of things you do on the page
+    - Event-based (when extension launches, gets installed)
+        - Setup a bunch of listeners to listen to events 
+        - eg: event sent btw page and background, they opened a tab, clicked something, etc
+    - Any interfacing with servers would be placed here
+    - Listen to tabs here, then inject javascript into the content script from the server
+    - Page-independent
+
+- Content
+    - Can inject into top or content page
+    - Just inject the javascript file/snippet at the top or bottom of the page
+    - If your css/javascript interferes with the page
+    - For words, iterate elements on the page and attach IDs to the elements
+    - Content page stores ID mapping to elements
+        - Sends this to service workers with ID, then content script
+    - Take element, take all script from the element, swap some of the text (eg: replace “have” with “<span>have</span>”) and then you send the new html
+    - Content script looks for main body of content, then takes all the text, sends it back to service worker, then sends it to server, sends up listener for response, server processes, then sends it back to the content script, then content script listens to server and maps the changes into the page
+        - Make it async
+        - Set up a listener endpoint 
+        - Loop responses 
+    - For highlights - put !important
+    - For bigger elements like tooltip, put a square, and put an iframe inside, then inside put html code with code / info
+
+    - Setup a listener for whenever the class we insert is hovered over
+    - Get where is it on the page for example
+
