@@ -4,12 +4,9 @@
   "version": "1.0.0",
   "description": "Bias Beacon is a plugin that helps identify bias in the modern media environment. It dentifies and highlights biased words in media content, providing scores and reasons upon hover.",
   "permissions": ["activeTab"],
-  "host_permissions": [
-    "*://*/*" //TBD
-  ],
+  "host_permissions": ["*://*/*"],
   "content_scripts": [
     {
-      //   "matches": ["*://*/*"],
       "matches": ["*://www.cnn.com/*", "*://www.foxnews.com/*"],
       "js": ["content-script.js"]
     }
@@ -18,11 +15,11 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html", // tbd
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "images/icon16.png",
       "48": "images/icon48.png",
-      "128": "images/icon128.png" //tbd
+      "128": "images/icon128.png"
     }
   },
   "content_security_policy": {

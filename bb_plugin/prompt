@@ -1,0 +1,14 @@
+We're building a google chrome plugin called "Bias Beacon".
+
+Our Value Proposition: A tool for readers to learn about the biases of the news they are reading. This tool works in real-time and offers article-level insights.
+
+Our Mission Statement: To help readers navigate bias in the modern media environment.
+
+How: We use bias identification software to help readers learn about the reliability of news sources.
+
+Goal: The goal is take in content on the media page that the user is reading, send it to a server, identify which words are above a threshold in bias, and then highlight those words. On hover, the user should see a tooltip appear that shows the bias score and a bias reason.
+
+Specific architectural requirements:
+
+- This must be a google chrome plugin.
+- It must contain at the bare minimum content-script.js, manifest.json, and background.js
