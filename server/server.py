@@ -39,7 +39,6 @@ async def analyze_bias(words: str = Query(..., description="Words to analyze for
 
         print("Filtered data", filtered_bias_data)
 
-
         return {"phrase:": words,"content_bias": filtered_bias_data}
     
     except Exception as e:
