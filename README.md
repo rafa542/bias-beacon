@@ -63,7 +63,8 @@ To start the FastAPI server:
 2. Start the server using the following command:
 
    ```bash
-   uvicorn server.server:app --reload
+   uvicorn server.server:app --host 127.0.0.1 --port 8000 --reload
+
    ```
 
    The `--reload` flag enables hot reloading so the server will restart upon changes to the code.
