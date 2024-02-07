@@ -1,0 +1,17 @@
+/* Style for highlighted biased words */
+.bias-beacon-highlight {
+  background-color: yellow;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Style for tooltip */
+.bias-beacon-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  padding: 5px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  z-index: 1000;
+}

@@ -4,6 +4,7 @@
 
 console.log("Background script loaded");
 
+// This script runs in the background and communicates with the server to fetch bias data.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "fetchBiasData") {
     console.log("Received message for bias data fetch");
@@ -13,15 +14,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         // URL of the deployed API
         const apiUrl = "https://yourmodelapi.com/api/bias";
-
-        // Receives the JSON response
         const response = await fetch(apiUrl, {
-          method: "POST", // or 'GET', depending on your server setup
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-
-          body: JSON.stringify({ content: request.content }), // Assuming you send content to analyze
+          body: JSON.stringify({ content: request.content }),
         });
         if (!response.ok) throw new Error("Network response was not ok.");
         const data = await response.json();

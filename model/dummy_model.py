@@ -20,12 +20,24 @@ def generate_bias(word):
         "bias_reason": bias_reason
     }
 
-    return json.dumps(result)
+    return result
+
+def main():
+    """
+    The main function that will be called when you run 'poetry run run-model'
+    """
+    try:
+        # Check if an argument is provided
+        if len(sys.argv) < 2:
+            print("No word provided. Usage: poetry run run-model [word]")
+            sys.exit(1)
+
+        word = sys.argv[1]
+        bias_info = generate_bias(word)
+        print(json.dumps(bias_info))
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python dummy_model.py [word]")
-        sys.exit(1)
-    
-    input_word = sys.argv[1]
-    print(generate_bias(input_word))
+    main()

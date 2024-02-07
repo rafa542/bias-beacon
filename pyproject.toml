@@ -1,21 +1,22 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "bias-beacon"
+name = "server"
 version = "0.1.0"
 description = "Bias identification plugin to help readers identify and understand the bias of their media sources"
-#authors = ["Your Name <youremail@example.com>"]
+authors = ["Georgiy Sekretaryuk <37413530+sekretaryuk@users.noreply.github.com>"]
+readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-# Add your project dependencies here
-# For example, if you need requests, you can add:
-# requests = "^2.25.1"
+python = "^3.11"
+pydantic ="^1.8.2"
+fastapi = "^0.108"
+uvicorn = "^0.25"
 
 [tool.poetry.dev-dependencies]
-# pytest = "^6.2.2"
+pytest = "^6.2.2"
 
 [tool.poetry.scripts]
-run-model = 'model.dummy_model:generate_bias'
+run-model = "model.dummy_model:main"
