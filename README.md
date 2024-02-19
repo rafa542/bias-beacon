@@ -38,13 +38,11 @@ This project uses Poetry for dependency management and packaging. To set up the 
 
 ## Deploying the Plugin
 
-Right now the plugin can be deployed as a ZIP file. To deploy the plugin:
+Right now the plugin can be deployed manually. You don't need to zip it.
 
-1. Run the `deploy_plugin` script using Poetry:
-
-```bash
-   poetry run deploy_plugin
-```
+1. Go to chrome://extensions/
+2. Click "Load unpacked"
+3. Select the 'bb_plugin' folder
 
 ## Running the ML Model Script
 
