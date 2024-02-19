@@ -36,7 +36,17 @@ This project uses Poetry for dependency management and packaging. To set up the 
    poetry install
    ```
 
-## Running the Model Script
+## Deploying the Plugin
+
+Right now the plugin can be deployed as a ZIP file. To deploy the plugin:
+
+1. Run the `deploy_plugin` script using Poetry:
+
+```bash
+   poetry run deploy_plugin
+```
+
+## Running the ML Model Script
 
 To analyze a word for bias using the model script:
 
