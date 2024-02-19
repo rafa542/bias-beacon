@@ -2,12 +2,21 @@
 <html>
   <head>
     <title>Bias Beacon</title>
-    <link rel="stylesheet" type="text/css" href="styles.css" />
+
+    <link rel="stylesheet" type="text/css" href="style.css" />
   </head>
   <body>
     <div id="app">
+      <img src="images/icon48.png" alt="Bias Beacon Logo" id="logo" />
+
       <h1>Bias Beacon</h1>
-      <button id="checkBias">Check for Bias</button>
+      <h2>Helping readers navigate bias in media.</h2>
+      <div id="current-outlet">
+        Current Outlet: <span id="outlet-url">[URL]</span>
+      </div>
+      <div id="app-version">
+        App version: <span id="version">[App Version]</span>
+      </div>
     </div>
     <script src="popup.js"></script>
   </body>

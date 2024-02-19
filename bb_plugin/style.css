@@ -1,3 +1,35 @@
+/* Reset body margins and set background */
+body {
+  margin: 0;
+  background-color: white;
+}
+
+/* Style for the app container */
+#app {
+  text-align: center;
+  color: #191919;
+}
+
+/* Style for the logo */
+#logo {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 48px; /* Assuming the logo size is 48x48 pixels */
+  height: 48px;
+}
+
+/* Style for the header title */
+h1 {
+  color: #520086; /* Accent color for title */
+}
+
+/* Style for the URL and version */
+#current-outlet,
+#app-version {
+  color: #520086; /* Accent color for URLs */
+}
+
 /* Style for highlighted biased words */
 .bias-beacon-highlight {
   background-color: yellow;
@@ -15,3 +47,5 @@
   border: 1px solid #ddd;
   z-index: 1000;
 }
+
+/* Other styles can go here */
