@@ -11,7 +11,7 @@ app = FastAPI()
 class Content(BaseModel):
     content: str
 
-@app.get("/api/bias")  
+@app.get("/api/contentbias")  
 async def analyze_bias(words: str = Query(..., description="Words to analyze for bias")):
     try:
         # IF USING LLM_BIAS_DETECTION.PY
@@ -43,6 +43,10 @@ async def analyze_bias(words: str = Query(..., description="Words to analyze for
     
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": "Error processing request", "detail": str(e)})
+    
+@app.get("/")
+def root():
+    return JSONResponse(content={"detail": "Not Found"}, status_code=404)
 
 if __name__ == "__main__":
     uvicorn.run("server.server:app", host="127.0.0.1", port=8000, reload=True)

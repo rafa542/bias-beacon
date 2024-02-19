@@ -1,6 +1,8 @@
 // Background script
 
-// NOTE: We should have the model on a server with an API. Can build an API with FastAPI, very quick.
+// NOTE:
+// The models are located in ../model.
+// The server is located in ../server.The endpoints will need to be expanded accordingly.
 
 console.log("Background script loaded");
 
