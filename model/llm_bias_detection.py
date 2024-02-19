@@ -43,7 +43,7 @@ def get_bias_prediction(word, client, bias_function):
         messages=[
             {
                 "role": "system",
-                "content": "You are a bias detection assistant. Analyze each word in the provided text for bias."
+                "content": "You are a bias detection assistant. Analyze each word in the provided text for bias. Make sure to assess both positive and negative bias. Always print the bias score up to 3 significant figures, between 0 and 1. A float decimal is expected."
             },
             {
                 "role": "user",
@@ -74,11 +74,11 @@ def analyze_paragraph(paragraph):
             "properties": {
                 "bias_score": {
                     "type": "integer",
-                    "description": "A bias score from 0 to 1. 3 significant figures. If the score is 0, output 0."
+                    "description": "A bias score from 0 to 1. Up to 3 significant figures. If the score is 0, output 0."
                 },
                 "bias_reason": {
                     "type": "string",
-                    "description": "What is the reason for the bias score? Why is it biased?."
+                    "description": "What is the reason for the bias score? Why is it biased?"
                 },
             },
             "required": ["bias_score", "bias_reason"]
@@ -91,7 +91,7 @@ def analyze_paragraph(paragraph):
     for index, word in enumerate(words):
         
         bias_info_str = get_bias_prediction(word, client, bias_function)
-        print("Bias!!", bias_info_str)
+        print("Bias!!", bias_info_str) 
 
         # Convert the string response to a dictionary
         bias_info_dict = json.loads(bias_info_str.arguments)

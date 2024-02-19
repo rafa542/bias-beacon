@@ -46,6 +46,8 @@ Right now the plugin can be deployed manually. You don't need to zip it.
 
 ## Running the ML Model Script
 
+!!THIS ONLY WORKS WITH THE DUMMY_MODEL.PY, GENERATES A RANDOM NUMBER. NEEDS TO BE UPDATED.
+
 To analyze a word for bias using the model script:
 
 1. Ensure you are within the Poetry shell environment. If not, run `poetry shell` to enter the virtual environment.
