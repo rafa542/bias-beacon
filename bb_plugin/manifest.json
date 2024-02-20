@@ -1,12 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Bias Beacon",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Bias Beacon is a plugin that helps identify bias in the modern media environment. It dentifies and highlights biased words in media content, providing scores and reasons upon hover.",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "scripting"],
   "background": {
-    "scripts": ["background.js"],
-    "persistent": false
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {

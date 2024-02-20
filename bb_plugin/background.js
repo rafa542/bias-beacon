@@ -1,41 +1,91 @@
 // Background script
 
+// This should receive the background text from content-script, generate indices for all words, and send it to model to process.
+
 // NOTE:
 // The models are located in ../model.
 // The server is located in ../server.The endpoints will need to be expanded accordingly.
 
-console.log("Background script loaded");
+console.log("Background.js loaded.");
 
 // This script runs in the background and communicates with the server to fetch bias data.
 
-// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//   if (request.action === "fetchBiasData") {
-//     console.log("Received message for bias data fetch");
+// ../model/llm_bias_detection.py has analyze_paragraph(). It takes a sentence and will return the bias for each word.
 
-//     // Example fetch request to your server
-//     const fetchData = async () => {
-//       try {
-//         // URL of the deployed API
-//         const apiUrl = "https://yourmodelapi.com/api/bias";
-//         const response = await fetch(apiUrl, {
-//           method: "POST",
-//           headers: {
-//             "Content-Type": "application/json",
-//           },
-//           body: JSON.stringify({ content: request.content }),
-//         });
-//         if (!response.ok) throw new Error("Network response was not ok.");
-//         const data = await response.json();
-//         sendResponse({ success: true, data });
-//       } catch (error) {
-//         console.error("Fetch error:", error);
-//         sendResponse({ success: false, error: error.message });
-//       }
-//     };
+// Listener for the Chrome Extension's runtime messages
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "fetchPageContent") {
+    console.log("Background: Request to fetch page content received.");
 
-//     fetchData();
+    // Acquire the current tab and fetch its content
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tabs[0].id },
+          func: scrapePageText,
+        },
+        (results) => {
+          // Getting the content from the scrapePageText function, check data, error handling for disallowed resources
+          if (results[0]) {
+            const allSentences = results[0].result;
+            console.log(
+              `Content scraped successfully. Found ${allSentences.length} sentences to analyze.`
+            );
+            processAndSendToServer(allSentences, sendResponse);
+          } else {
+            console.error(
+              "Failed to scrape the data from the tab. Please check permissions."
+            );
+          }
+        }
+      );
+    });
+    return true; // Keep the message port active for asynchronous loading
+  }
+});
 
-//     // Must return true when using sendResponse asynchronously
-//     return true;
-//   }
-// });
+// The scraping function
+function scrapePageText() {
+  // Print to test
+  console.log("scrapePageText() invoked.");
+
+  const page_text = document.body.innerText.split(/\.\s/);
+
+  return page_text;
+}
+
+// Method to parse and process the particularities of a section before passing the remainder of the world
+async function processAndSendToServer(allSentences, sendResponse) {
+  for (let i = 0; i < allSentences.length; i++) {
+    const sentence = allSentences[i];
+
+    try {
+      // Sending to localhost server
+      const response = await fetch("http://127.0.0.1:8000/api/contentbias", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: sentence }),
+      });
+
+      const data = await response.json();
+      if (data.bias) {
+        console.log(`Analysis complete for sentence: ${sentence}.`);
+        chrome.runtime.sendMessage({
+          action: "updateBias",
+          sentenceIndex: i,
+          data: data.bias,
+        });
+      }
+    } catch (error) {
+      console.error(
+        "An error occurred when posting sentence to the server:",
+        sentence,
+        error
+      );
+    }
+  }
+  console.log("Completed analyzing the text content.");
+  sendResponse({ status: "Process completed!" });
+}
