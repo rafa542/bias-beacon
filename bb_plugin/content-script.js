@@ -4,6 +4,16 @@
 
 console.log("content-script.js loaded.");
 
+/*
+
+##################
+SECTION:
+- EXTRACT CONTENT
+- SEND TO BACKGROUND.JS FOR PROCESING
+##################
+
+*/
+
 function extractContent() {
   // Extract the entire document text content
   return document.body.textContent;
@@ -53,6 +63,17 @@ chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     }
   );
 });
+
+/*
+
+##################
+SECTION:
+- HIGHLIGHT BIAS WORDS
+- CREATE A TOOLTIP 
+- SHOW TOOLTIP ON HOVER
+##################
+
+*/
 
 // const highlightBiasWords = (biasData) => {
 //   // Iterate over each word data received from the server and highlight them

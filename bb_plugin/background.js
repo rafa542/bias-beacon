@@ -1,6 +1,6 @@
 // Background script
 
-// This should receive the background text from content-script, generate indices for all words, and send it to model to process.
+// This should receive the background text from content-script, generate indices for all words, and send it to model to process. JSON: {index, word, context_sentence}
 
 // NOTE:
 // The models are located in ../model.
