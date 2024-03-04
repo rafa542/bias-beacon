@@ -10,7 +10,7 @@ authors = ["Georgiy Sekretaryuk <37413530+sekretaryuk@users.noreply.github.com>"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11.8"
 pydantic ="^1.8.2"
 fastapi = "^0.108"
 uvicorn = "^0.25"
