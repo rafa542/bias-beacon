@@ -8,11 +8,39 @@ console.log("content-script.js loaded.");
 
 ##################
 SECTION:
-- EXTRACT CONTENT
-- SEND TO BACKGROUND.JS FOR PROCESING
+- EXTRACT URL
+- SEND TO URL BACKGROUND.JS TO CHECK IF IT EXISTS IN CACHE
+- SCRAPE WEBSITE CONTENT WORDS, CLEAN IT, INDEX WORDS (BACKGROUND.JS CAN ACCESS THIS)
+- RECEIVE RESULTS FROM BACKGROUND.JS ASYNCHRONOUSLY
+- INDEXED WORDS ARE MATCHED, <SPAN> TAGS ARE APPLIED TO THE INDEXED WORD AND THE BACKGROUND IS HIGHLIGHTED IN YELLOW
 ##################
 
 */
+
+// SEND TO URL BACKGROUND.JS TO CHECK IF IT EXISTS IN CACHE
+
+function checkCacheAndSendURL() {
+  const currentURL = window.location.href;
+  console.log("Sending URL to background.js to check cache", currentURL);
+
+  chrome.runtime.sendMessage(
+    {
+      action: "checkCache",
+      url: currentURL,
+    },
+    function (response) {
+      if (response.isCached) {
+        console.log("URL content is cached. Using cached data.");
+        // Optionally, process cached data
+      } else {
+        console.log("URL content not in cache. Extracting content.");
+        extractCleanContentAndSend();
+      }
+    }
+  );
+}
+
+// SCRAPE WEBSITE CONTENT WORDS, CLEAN IT, INDEX WORDS (BACKGROUND.JS CAN ACCESS THIS)
 
 function extractContent() {
   // Extract the entire document text content
