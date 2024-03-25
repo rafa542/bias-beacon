@@ -21,11 +21,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     fetch(
       `http://localhost:8000/api/cache?url=${encodeURIComponent(request.url)}`
     )
-      .then((response) => {
-        // Check the response status to determine if it's cached
-        if (response.status === 200) {
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.isCached) {
+          console.log("URL is cached:", request.url);
           sendResponse({ isCached: true });
         } else {
+          console.log("URL is not cached:", request.url);
           sendResponse({ isCached: false });
         }
       })
@@ -34,7 +36,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         sendResponse({ isCached: false, error: "Failed to check cache" });
       });
 
-    return true; // Indicate that sendResponse will be called asynchronously
+    return true;
   }
 });
 

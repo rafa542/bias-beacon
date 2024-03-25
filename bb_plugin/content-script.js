@@ -29,11 +29,15 @@ function checkCacheAndSendURL() {
       url: currentURL,
     },
     function (response) {
-      if (response.isCached) {
+      // Check if the response object exists to handle potential messaging errors
+      if (response && response.isCached) {
         console.log("URL content is cached. Using cached data.");
-        // Optionally, process cached data
+      } else if (response && response.error) {
+        console.error("Error checking cache:", response.error);
       } else {
-        console.log("URL content not in cache. Extracting content.");
+        console.log(
+          "URL content not in cache or error occurred. Extracting content."
+        );
         extractCleanContentAndSend();
       }
     }
@@ -42,55 +46,56 @@ function checkCacheAndSendURL() {
 
 // SCRAPE WEBSITE CONTENT WORDS, CLEAN IT, INDEX WORDS (BACKGROUND.JS CAN ACCESS THIS)
 
-function extractContent() {
-  // Extract the entire document text content
-  return document.body.textContent;
-}
+function extractAndIndexContentAndFindH1() {
+  let textContent = "";
+  let nodeIndex = []; // Store {node, startOffset, endOffset} for each text node
+  let h1Content = []; // To store content of all <h1> tags
 
-// Query for the active tab and execute content extraction logic
-chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-  const activeTab = tabs[0];
-
-  // Execute content extraction logic on the active tab
-  chrome.scripting.executeScript(
-    {
-      target: { tabId: activeTab.id },
-      func: extractContent,
-    },
-    (results) => {
-      // Handle execution results here
-      if (chrome.runtime.lastError) {
-        console.error(
-          "Error executing content script:",
-          chrome.runtime.lastError.message
-        );
-      } else {
-        const pageContent = results[0].result;
-        console.log("Got page content.");
-
-        // Send the extracted content to the background script for further processing
-        chrome.runtime.sendMessage(
-          {
-            action: "fetchPageContent",
-            content: pageContent,
-          },
-          (response) => {
-            if (response.status === "Process completed!") {
-              console.log(
-                "Data processed successfully by the model:",
-                response
-              );
-              // Update the DOM based on the received data if necessary
-            } else {
-              console.error("Error processing data:", response.error);
-              // Error handling; user error messages
-            }
-          }
-        );
+  function traverseNodes(node) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      // Check if the node is an <h1> element
+      if (node.tagName === "H1") {
+        h1Content.push(node.innerText.trim());
       }
     }
-  );
-});
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.nodeValue.trim();
+      const length = text.length;
+      if (length > 0) {
+        // Add node and its text to the index
+        nodeIndex.push({
+          node,
+          startOffset: textContent.length,
+          endOffset: textContent.length + length,
+        });
+        textContent += text + " "; // Append text with a space
+      }
+    }
+
+    // Recursively process child nodes
+    node.childNodes.forEach(traverseNodes);
+  }
+
+  traverseNodes(document.body);
+
+  return { textContent, nodeIndex, h1Content };
+}
+
+let { textContent, nodeIndex, h1Content } = extractAndIndexContentAndFindH1();
+
+// Log the content of all <h1> tags
+console.log("H1 Content:", h1Content.join(", "));
+
+// View textContent and nodeIndex in console
+console.log(
+  "First 500 characters of extracted content:",
+  textContent.slice(0, 500)
+);
+console.log(
+  "Details of first few indexed nodes:",
+  JSON.stringify(nodeIndex.slice(0, 5), null, 2)
+);
 
 /*
 
