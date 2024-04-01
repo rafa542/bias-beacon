@@ -37,6 +37,27 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       });
 
     return true;
+  } else if (request.action === "analyzeContentBias") {
+    console.log("Analyzing content bias for indexed H1 words.");
+
+    const promises = request.data.map((item, index) =>
+      fetch(`http://localhost:8000/api/contentbias`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sentence: item.sentence }),
+      })
+        .then((response) => response.json())
+        .then((data) => ({ index, data }))
+        .catch((error) => ({ index, error: error.toString() }))
+    );
+
+    Promise.all(promises).then((results) => {
+      sendResponse({ results });
+    });
+
+    return true; // keep the messaging channel open for the asynchronous response
   }
 });
 

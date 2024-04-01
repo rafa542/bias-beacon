@@ -23,3 +23,5 @@ pytest = "^6.2.2"
 [tool.poetry.scripts]
 run-model = "model.dummy_model:main"
 deploy_plugin = "zip_extension:zipdir"
+launch_server = "server.launch:launch"
+

@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
-import uvicorn
 import json
 from typing import Optional
 from fastapi.responses import JSONResponse
@@ -53,8 +52,8 @@ def check_url_in_cache(url: str):
 ##### Content Setup
 ################################
 
-class Content(BaseModel):
-    content: str
+class ContentBiasRequest(BaseModel):
+    sentence: str
 
 
 ################################
@@ -72,16 +71,18 @@ async def cache_api(url: str = Query(..., description="Website URL to check in c
         return JSONResponse(status_code=e.status_code, content={"message": "Error accessing cache", "detail": e.detail, "isCached": False})
 
 
-@app.get("/api/contentbias")  
-async def analyze_bias(words: str = Query(..., description="Words to analyze for bias")):
+@app.post("/api/contentbias")  
+async def analyze_bias(request: ContentBiasRequest):
     try:
+        words = request.sentence
+        print("Analyzing words:", words)
         # IF USING LLM_BIAS_DETECTION.PY
         bias_data = analyze_paragraph(words)
 
         print("Got here!")
 
         # OPTIONAL: BIAS THRESHOLD FOR SERVER RESPONSE
-        filtered_bias_data = [item for item in bias_data if item['bias_rating']['bias_score'] >= 0.5]
+        filtered_bias_data = [item for item in bias_data if item['bias_rating']['bias_score'] >= 0.7]
 
 
         #IF USING DUMMY_MODEL.PY
@@ -100,7 +101,7 @@ async def analyze_bias(words: str = Query(..., description="Words to analyze for
 
         print("Filtered data", filtered_bias_data)
 
-        return {"phrase:": words,"content_bias": filtered_bias_data}
+        return {"sentence:": words,"content_bias": filtered_bias_data}
     
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": "Error processing request", "detail": str(e)})
@@ -108,7 +109,3 @@ async def analyze_bias(words: str = Query(..., description="Words to analyze for
 @app.get("/")
 def root():
     return JSONResponse(content={"detail": "Not Found"}, status_code=404)
-
-if __name__ == "__main__":
-    uvicorn.run("server.server:app", host="127.0.0.1", port=8000, reload=True)
-

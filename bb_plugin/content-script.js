@@ -48,8 +48,8 @@ function checkCacheAndSendURL() {
 
 function extractAndIndexContentAndFindH1() {
   let textContent = "";
-  let nodeIndex = []; // Store {node, startOffset, endOffset} for each text node
-  let h1Content = []; // To store content of all <h1> tags
+  let nodeIndex = [];
+  let h1Content = [];
 
   function traverseNodes(node) {
     if (node.nodeType === Node.ELEMENT_NODE) {
@@ -90,67 +90,141 @@ console.log("H1 Content:", h1Content.join(", "));
 // View textContent and nodeIndex in console
 console.log(
   "First 500 characters of extracted content:",
-  textContent.slice(0, 500)
+  textContent.slice(0, 3000)
 );
 console.log(
   "Details of first few indexed nodes:",
   JSON.stringify(nodeIndex.slice(0, 5), null, 2)
 );
 
-/*
+function h1_indexer(h1ContentArray) {
+  let indexedWordsByH1 = []; // Initialize an empty array to hold the objects
 
+  // Iterate over each content string in the h1ContentArray
+  h1ContentArray.forEach((content, sentenceIndex) => {
+    // Prepare the object structure for this H1 content
+    let sentenceInfo = {
+      sentenceIndex: sentenceIndex,
+      sentence: content,
+      sentenceInfo: [],
+    };
+
+    // Split content into words based on spaces
+    const words = content.split(/\s+/);
+
+    // Iterate over words to fill the sentenceInfo array with objects containing word and its position
+    words.forEach((word, position) => {
+      if (word.trim() !== "") {
+        // Only add non-empty strings
+        sentenceInfo.sentenceInfo.push({ index: position, word });
+      }
+    });
+
+    // Add the structured object for this H1 content to the array
+    indexedWordsByH1.push(sentenceInfo);
+  });
+
+  return indexedWordsByH1; // Return the array with structured objects
+}
+
+let indexedH1Words = h1_indexer(h1Content);
+console.log(
+  "Indexed H1 Words Further Enhanced:",
+  JSON.stringify(indexedH1Words, null, 2)
+);
+
+function highlightBiasedWords(indexedH1Words) {
+  indexedH1Words.forEach((sentenceObj) => {
+    // Extract the original sentence's words as an array
+    const words = sentenceObj.sentence.split(/\s+/);
+
+    // Rebuild the sentence, inserting spans where necessary
+    const rebuiltSentence = words
+      .map((word, index) => {
+        // Find if this word has a bias rating
+        const wordInfo = sentenceObj.sentenceInfo.find(
+          (info) => info.index === index
+        );
+        if (
+          wordInfo &&
+          wordInfo.biasRatings &&
+          wordInfo.biasRatings.length > 0
+        ) {
+          // Word has bias; wrap it in a span
+          return `<span style='background-color: yellow;'>${word}</span>`;
+        } else {
+          return word; // Word does not have bias; leave it as is
+        }
+      })
+      .join(" "); // Rejoin the words into a single string
+
+    // Now, update the HTML of the corresponding <h1> tag
+    const h1Nodes = document.querySelectorAll("h1");
+    h1Nodes.forEach((node) => {
+      if (node.innerText.trim() === sentenceObj.sentence.trim()) {
+        console.log(`Highlighting biased words in sentence:`, node.innerText);
+        node.innerHTML = rebuiltSentence;
+      }
+    });
+  });
+}
+
+// In content-script.js, modify the response handling
+chrome.runtime.sendMessage(
+  {
+    action: "analyzeContentBias",
+    data: indexedH1Words,
+  },
+  function (response) {
+    if (response && response.results) {
+      response.results.forEach((result) => {
+        if (result.error) {
+          console.error(
+            `Error analyzing content bias for sentence index ${result.index}: ${result.error}`
+          );
+        } else {
+          // Find the corresponding sentence using sentenceIndex
+          const sentenceObj = indexedH1Words.find(
+            (s) => s.sentenceIndex === result.index
+          );
+          if (sentenceObj) {
+            // Ensure we have a place to store bias ratings
+            sentenceObj.sentenceInfo.forEach(
+              (wordInfo) => (wordInfo.biasRatings = [])
+            );
+
+            result.data.content_bias.forEach((biasInfo) => {
+              // Find the matching word in sentenceInfo
+              const wordObj = sentenceObj.sentenceInfo.find(
+                (word) => word.index === biasInfo.word_index_in_sentence
+              );
+              if (wordObj) {
+                // Add the biasRating to this word
+                wordObj.biasRatings.push(biasInfo.bias_rating);
+              }
+            });
+
+            console.log(
+              `Enhanced sentence info for sentence at index ${result.index}:`,
+              sentenceObj
+            );
+          }
+          highlightBiasedWords(indexedH1Words);
+        }
+      });
+    } else {
+      console.error(
+        "Failed to get bias analysis results without specific error details."
+      );
+    }
+  }
+);
+
+/*
 ##################
 SECTION:
 - HIGHLIGHT BIAS WORDS
 - CREATE A TOOLTIP 
 - SHOW TOOLTIP ON HOVER
 ##################
-
 */
-
-// const highlightBiasWords = (biasData) => {
-//   // Iterate over each word data received from the server and highlight them
-//   Object.values(biasData).forEach(
-//     ({ index_in_text, word, bias_score, bias_reason }) => {
-//       if (bias_score > 0.8) {
-//         // Find the word in the content and wrap it with a span tag
-
-//         const regex = new RegExp(`\\b${word}\\b`, "gi");
-//         document.body.innerHTML = document.body.innerHTML.replace(
-//           regex,
-//           (match) => {
-//             return `<span class="bias-highlighted" data-bias-score="${bias_score}" data-bias-reason="${bias_reason}">${match}</span>`;
-//           }
-//         );
-//       }
-//     }
-//   );
-// };
-
-// // Listen for messages from the background script
-// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//   if (request.action === "highlightBiasWords") {
-//     highlightBiasWords(request.data);
-//   }
-// });
-
-// // Add event listeners for tooltips
-// document.addEventListener("mouseover", (event) => {
-//   if (event.target.classList.contains("bias-highlighted")) {
-//     const tooltip = document.createElement("div");
-//     tooltip.className = "bias-tooltip";
-//     tooltip.innerHTML = `<strong>${event.target.innerText}</strong><br>Score: ${event.target.dataset.biasScore}<br>Reason: ${event.target.dataset.biasReason}`;
-//     document.body.appendChild(tooltip);
-//     tooltip.style.left = `${event.pageX}px`;
-//     tooltip.style.top = `${event.pageY}px`;
-//   }
-// });
-
-// document.addEventListener("mouseout", (event) => {
-//   if (event.target.classList.contains("bias-highlighted")) {
-//     const tooltips = document.getElementsByClassName("bias-tooltip");
-//     while (tooltips.length > 0) {
-//       tooltips[0].parentNode.removeChild(tooltips[0]);
-//     }
-//   }
-// });

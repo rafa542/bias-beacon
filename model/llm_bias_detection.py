@@ -36,21 +36,21 @@ def setup_openai_api():
 
 
 # Function to predict bias for each word in a paragraph
-def get_bias_prediction(word, client, bias_function):
+def get_bias_prediction(word, sentence, client, bias_function):
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4-0125-preview",
         messages=[
             {
                 "role": "system",
-                "content": "You are a bias detection assistant. Analyze each word in the provided text for bias. Make sure to assess both positive and negative bias. Always print the bias score up to 3 significant figures, between 0 and 1. A float decimal is expected."
+                "content": "You are a bias detection assistant. Make sure to asses negative bias. Do not assess words in quotes. Do not assess names of individuals. Follow the AP Style Guidebook. Always print the bias score up to 3 significant figures, between 0 and 1. A float decimal is expected."
             },
             {
                 "role": "user",
-                "content": f"What is the bias score of the word: {word}."
+                "content": f"What is the bias score of the word: '{word}' in the context of sentence '{sentence}'."
             }
         ],
-        # temperature=0.7,
+        temperature=0,
         # max_tokens = 200,
         functions=bias_function,
         function_call="auto",
@@ -89,8 +89,10 @@ def analyze_paragraph(paragraph):
     processed_responses = []
     
     for index, word in enumerate(words):
+
+        print("testing word ", word," in setnence:", paragraph)
         
-        bias_info_str = get_bias_prediction(word, client, bias_function)
+        bias_info_str = get_bias_prediction(word, paragraph, client, bias_function)
         print("Bias!!", bias_info_str) 
 
         # Convert the string response to a dictionary
@@ -101,7 +103,6 @@ def analyze_paragraph(paragraph):
         processed_response = {
             "word_index_in_sentence": index,
             "bias_rating": {
-                "word": word,
                 "bias_score": bias_info_dict["bias_score"],
                 "bias_reason": bias_info_dict["bias_reason"]
             }
