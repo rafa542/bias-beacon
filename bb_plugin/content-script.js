@@ -212,7 +212,11 @@ function highlightBiasedSentences(indexedSentences) {
 chrome.runtime.sendMessage(
   {
     action: "analyzeContentBias",
-    data: indexedSentences,
+    // Include the URL in the data sent to the background script
+    data: {
+      url: window.location.href.split("?")[0], // Excludes query parameters
+      sentences: indexedH1Sentence,
+    },
   },
   function (response) {
     if (response && response.results) {
@@ -232,8 +236,8 @@ chrome.runtime.sendMessage(
               sentenceObj
             );
 
-            // Assuming any received sentence analysis means it's biased and should be highlighted
-            highlightBiasedSentences([sentenceObj]); // Adjust this to highlight just this sentence
+            // Highlight the sentence based on the received analysis
+            highlightBiasedSentences([sentenceObj]);
           }
         }
       });

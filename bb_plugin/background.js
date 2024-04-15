@@ -10,53 +10,62 @@
 
 console.log("Background.js loaded.");
 
-let urlCache = {};
-
 // Listener for messages from content scripts
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (request.action === "checkCache") {
-    console.log("Received checkCache action for URL:", request.url);
+  // Handle "analyzeContentBias" action
+  if (request.action === "analyzeContentBias") {
+    console.log("Analyzing content bias for sentences.");
 
-    // Send request to localhost to check if the URL is in the cache
-    fetch(
-      `http://localhost:8000/api/cache?url=${encodeURIComponent(request.url)}`
-    )
+    // First, check if the URL is in the cache
+    fetch(`http://localhost:8000/api/cache`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url: request.data.url }),
+    })
       .then((response) => response.json())
-      .then((data) => {
-        if (data.isCached) {
-          console.log("URL is cached:", request.url);
-          sendResponse({ isCached: true });
+      .then((cacheData) => {
+        if (cacheData.isCached) {
+          console.log("URL is cached:", request.data.url);
+          // If data is cached, immediately return the cached results
+          sendResponse({ results: cacheData.content });
         } else {
-          console.log("URL is not cached:", request.url);
-          sendResponse({ isCached: false });
+          console.log("URL is not cached:", request.data.url);
+          // If data is not cached, analyze content bias for each sentence
+          const promises = request.data.sentences.map((item) =>
+            fetch(`http://localhost:8000/api/contentbias`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                url: request.data.url,
+                sentence_id: item.sentenceIndex,
+                sentence: item.sentence,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => ({ index: item.sentenceIndex, data }))
+              .catch((error) => ({
+                index: item.sentenceIndex,
+                error: error.toString(),
+              }))
+          );
+
+          // Wait for all content bias analyses to complete
+          Promise.all(promises).then((results) => {
+            sendResponse({ results });
+          });
         }
       })
       .catch((error) => {
-        console.error("Error checking cache:", error);
-        sendResponse({ isCached: false, error: "Failed to check cache" });
+        console.error("Error checking cache or analyzing content bias:", error);
+        sendResponse({
+          isCached: false,
+          error: "Failed to check cache or analyze content bias",
+        });
       });
-
-    return true;
-  } else if (request.action === "analyzeContentBias") {
-    console.log("Analyzing content bias for indexed H1 words.");
-
-    const promises = request.data.map((item, index) =>
-      // fetch(`https://biasbeacon.replit.app/api/contentbias`, {
-      fetch(`https://localhost:8000`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ sentence: item.sentence }),
-      })
-        .then((response) => response.json())
-        .then((data) => ({ index, data }))
-        .catch((error) => ({ index, error: error.toString() }))
-    );
-
-    Promise.all(promises).then((results) => {
-      sendResponse({ results });
-    });
 
     return true; // keep the messaging channel open for the asynchronous response
   }
