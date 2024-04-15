@@ -97,83 +97,122 @@ console.log(
   JSON.stringify(nodeIndex.slice(0, 5), null, 2)
 );
 
+// FOR INDIVIDUAL WORDS
+// function h1_indexer(h1ContentArray) {
+//   let indexedWordsByH1 = []; // Initialize an empty array to hold the objects
+
+//   // Iterate over each content string in the h1ContentArray
+//   h1ContentArray.forEach((content, sentenceIndex) => {
+//     // Prepare the object structure for this H1 content
+//     let sentenceInfo = {
+//       sentenceIndex: sentenceIndex,
+//       sentence: content,
+//       sentenceInfo: [],
+//     };
+
+//     // Split content into words based on spaces
+//     const words = content.split(/\s+/);
+
+//     // Iterate over words to fill the sentenceInfo array with objects containing word and its position
+//     words.forEach((word, position) => {
+//       if (word.trim() !== "") {
+//         // Only add non-empty strings
+//         sentenceInfo.sentenceInfo.push({ index: position, word });
+//       }
+//     });
+
+//     // Add the structured object for this H1 content to the array
+//     indexedWordsByH1.push(sentenceInfo);
+//   });
+
+//   return indexedWordsByH1; // Return the array with structured objects
+// }
+
 function h1_indexer(h1ContentArray) {
-  let indexedWordsByH1 = []; // Initialize an empty array to hold the objects
+  let indexedHeadlines = [];
 
   // Iterate over each content string in the h1ContentArray
   h1ContentArray.forEach((content, sentenceIndex) => {
-    // Prepare the object structure for this H1 content
-    let sentenceInfo = {
+    // Prepare the object structure for this headline
+    let headlineInfo = {
       sentenceIndex: sentenceIndex,
       sentence: content,
-      sentenceInfo: [],
     };
 
-    // Split content into words based on spaces
-    const words = content.split(/\s+/);
-
-    // Iterate over words to fill the sentenceInfo array with objects containing word and its position
-    words.forEach((word, position) => {
-      if (word.trim() !== "") {
-        // Only add non-empty strings
-        sentenceInfo.sentenceInfo.push({ index: position, word });
-      }
-    });
-
-    // Add the structured object for this H1 content to the array
-    indexedWordsByH1.push(sentenceInfo);
+    // Add the structured object for this headline to the array
+    indexedHeadlines.push(headlineInfo);
   });
 
-  return indexedWordsByH1; // Return the array with structured objects
+  return indexedHeadlines;
 }
 
-let indexedH1Words = h1_indexer(h1Content);
+let indexedH1Sentence = h1_indexer(h1Content);
+
 console.log(
   "Indexed H1 Words Further Enhanced:",
   JSON.stringify(indexedH1Words, null, 2)
 );
 
-function highlightBiasedWords(indexedH1Words) {
-  indexedH1Words.forEach((sentenceObj) => {
-    // Extract the original sentence's words as an array
-    const words = sentenceObj.sentence.split(/\s+/);
+// FOR INDIVIDUAL WORDS
+// function highlightBiasedWords(indexedH1Sentence) {
+//   indexedH1Words.forEach((sentenceObj) => {
+//     // Extract the original sentence's words as an array
+//     const words = sentenceObj.sentence.split(/\s+/);
 
-    // Rebuild the sentence, inserting spans where necessary
-    const rebuiltSentence = words
-      .map((word, index) => {
-        // Find if this word has a bias rating
-        const wordInfo = sentenceObj.sentenceInfo.find(
-          (info) => info.index === index
-        );
-        if (
-          wordInfo &&
-          wordInfo.biasRatings &&
-          wordInfo.biasRatings.length > 0
-        ) {
-          // Word has bias; wrap it in a span
-          return `<span style='background-color: yellow;'>${word}</span>`;
-        } else {
-          return word; // Word does not have bias; leave it as is
-        }
-      })
-      .join(" "); // Rejoin the words into a single string
+//     // Rebuild the sentence, inserting spans where necessary
+//     const rebuiltSentence = words
+//       .map((word, index) => {
+//         // Find if this word has a bias rating
+//         const wordInfo = sentenceObj.sentenceInfo.find(
+//           (info) => info.index === index
+//         );
+//         if (
+//           wordInfo &&
+//           wordInfo.biasRatings &&
+//           wordInfo.biasRatings.length > 0
+//         ) {
+//           // Word has bias; wrap it in a span
+//           return `<span style='background-color: yellow;'>${word}</span>`;
+//         } else {
+//           return word; // Word does not have bias; leave it as is
+//         }
+//       })
+//       .join(" "); // Rejoin the words into a single string
 
-    // Now, update the HTML of the corresponding <h1> tag
+//     // Now, update the HTML of the corresponding <h1> tag
+//     const h1Nodes = document.querySelectorAll("h1");
+//     h1Nodes.forEach((node) => {
+//       if (node.innerText.trim() === sentenceObj.sentence.trim()) {
+//         console.log(`Highlighting biased words in sentence:`, node.innerText);
+//         node.innerHTML = rebuiltSentence;
+//       }
+//     });
+//   });
+// }
+
+function highlightBiasedSentences(indexedSentences) {
+  indexedSentences.forEach((sentenceObj) => {
+    // Highlight the entire sentence
     const h1Nodes = document.querySelectorAll("h1");
     h1Nodes.forEach((node) => {
       if (node.innerText.trim() === sentenceObj.sentence.trim()) {
-        console.log(`Highlighting biased words in sentence:`, node.innerText);
-        node.innerHTML = rebuiltSentence;
+        console.log(`Highlighting sentence:`, node.innerText);
+        node.innerHTML = `<span style='background-color: yellow;'>${node.innerHTML}</span>`;
       }
     });
   });
 }
 
-// In content-script.js, modify the response handling
+/*
+########################
+### RUNTIME SECTION
+########################
+*/
+
 chrome.runtime.sendMessage(
   {
     action: "analyzeContentBias",
-    data: indexedH1Words,
+    data: indexedSentences,
   },
   function (response) {
     if (response && response.results) {
@@ -184,32 +223,18 @@ chrome.runtime.sendMessage(
           );
         } else {
           // Find the corresponding sentence using sentenceIndex
-          const sentenceObj = indexedH1Words.find(
+          const sentenceObj = indexedSentences.find(
             (s) => s.sentenceIndex === result.index
           );
           if (sentenceObj) {
-            // Ensure we have a place to store bias ratings
-            sentenceObj.sentenceInfo.forEach(
-              (wordInfo) => (wordInfo.biasRatings = [])
-            );
-
-            result.data.content_bias.forEach((biasInfo) => {
-              // Find the matching word in sentenceInfo
-              const wordObj = sentenceObj.sentenceInfo.find(
-                (word) => word.index === biasInfo.word_index_in_sentence
-              );
-              if (wordObj) {
-                // Add the biasRating to this word
-                wordObj.biasRatings.push(biasInfo.bias_rating);
-              }
-            });
-
             console.log(
-              `Enhanced sentence info for sentence at index ${result.index}:`,
+              `Received analysis for sentence at index ${result.index}:`,
               sentenceObj
             );
+
+            // Assuming any received sentence analysis means it's biased and should be highlighted
+            highlightBiasedSentences([sentenceObj]); // Adjust this to highlight just this sentence
           }
-          highlightBiasedWords(indexedH1Words);
         }
       });
     } else {
@@ -219,12 +244,3 @@ chrome.runtime.sendMessage(
     }
   }
 );
-
-/*
-##################
-SECTION:
-- HIGHLIGHT BIAS WORDS
-- CREATE A TOOLTIP 
-- SHOW TOOLTIP ON HOVER
-##################
-*/
