@@ -1,29 +1,51 @@
 from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
 import json
-from typing import Optional
 from fastapi.responses import JSONResponse
+from datetime import datetime
+from typing import List
 
 from model.dummy_model import generate_bias
-from model.llm_bias_detection import analyze_paragraph, get_bias_prediction, setup_openai_api
+from model.gpt_bias_detection import analyze_paragraph, get_bias_prediction, setup_openai_api
 
 app = FastAPI()
 
 ################################
-##### Cache Setup
+##### Classes
 ################################
+
+class BiasRating(BaseModel):
+    bias_type: str
+    bias_score: float
+
+class SentenceAnalysisResult(BaseModel):
+    sentence_id: int
+    bias_rating: BiasRating
 
 class CacheItem(BaseModel):
     url: str
-    date_accessed: str
-    content: list
+    date_processed: str
+    content: List[SentenceAnalysisResult]
+
+class CacheCheckRequest(BaseModel):
+    url: str
+
+class ContentBiasRequest(BaseModel):
+    url: str
+    sentence_id: int
+    sentence: str
+
+
+################################
+##### Cache Setup
+################################
 
 # Function to read cache
 def read_cache():
 
     #Load the cache file
     try:
-        with open('cache/cache.txt', 'r') as f:
+        with open('storage/cache.json', 'r') as f:
             cache_data = json.load(f)
         return cache_data
     except Exception as e:
@@ -33,79 +55,117 @@ def read_cache():
 # Function to check if URL exists in cache
 def check_url_in_cache(url: str):
 
-    #Check if we can load cache
     try:
         cache_data = read_cache()
         
         # Iterate over the list of objects in the cache data, look for url match
         for item in cache_data:
             if item["url"] == url:
-                return True
+                return item["content"]  # Return the content if URL matches
+        
+        return None  # Return None if no match is found
     
-        return False
-    
-    #Raise error if we can't load cache.
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
 
-################################
-##### Content Setup
-################################
-
-class ContentBiasRequest(BaseModel):
-    sentence: str
-
+def save_to_cache(url: str, sentence_id: int, sentence_text: str, bias_data: dict):
+    cache_data = read_cache()
+    found = False
+    
+    for item in cache_data:
+        if item["url"] == url:
+            found = True
+            # Check if sentence_id already exists
+            existing_content = next((content for content in item["content"] if content["sentence_id"] == sentence_id), None)
+            if existing_content:
+                # Update existing content with new bias data and sentence
+                existing_content["bias_rating"] = bias_data["bias_rating"]
+                existing_content["sentence"] = sentence_text  # Update the sentence text
+            else:
+                # Append new content with sentence id, sentence text, and bias data
+                item["content"].append({
+                    "sentence_id": sentence_id,
+                    "sentence": sentence_text,  # Include the sentence text
+                    **bias_data
+                })
+            item["date_processed"] = datetime.now().isoformat()
+            break
+    
+    if not found:
+        # If URL not found, add new item with sentence id, sentence text, and bias data
+        cache_data.append({
+            "url": url,
+            "date_processed": datetime.now().isoformat(),
+            "content": [{
+                "sentence_id": sentence_id,
+                "sentence": sentence_text,  # Include the sentence text
+                **bias_data
+            }]
+        })
+    
+    # Save the updated cache data back to file
+    with open('storage/cache.json', 'w') as f:
+        json.dump(cache_data, f)
 
 ################################
 ##### API Endpoints
 ################################
 
-@app.get("/api/cache")
-async def cache_api(url: str = Query(..., description="Website URL to check in cache")):
-    
+@app.post("/api/cache")
+async def cache_api(request: CacheCheckRequest):
+
     try:
-        is_cached = check_url_in_cache(url)
-        return JSONResponse(content={"isCached": is_cached, "url": url}, status_code=200 if is_cached else 404)
-    
+        url = request.url
+        cached_content = check_url_in_cache(url)
+
+        if cached_content is not None:
+
+            # Return the cached content if a match is found
+            return JSONResponse(content={"isCached": True, "url": url, "content": cached_content}, status_code=200)
+        
+        else:
+            # Return a 404 status code if no cache match is found
+            return JSONResponse(content={"isCached": False, "url": url, "message": "URL not found in cache"}, status_code=404)
     except HTTPException as e:
-        return JSONResponse(status_code=e.status_code, content={"message": "Error accessing cache", "detail": e.detail, "isCached": False})
+        return JSONResponse(status_code=e.status_code, content={"message": "Error accessing cache", "detail": e.detail})
 
 
 @app.post("/api/contentbias")  
 async def analyze_bias(request: ContentBiasRequest):
     try:
-        words = request.sentence
-        print("Analyzing words:", words)
-        # IF USING LLM_BIAS_DETECTION.PY
-        bias_data = analyze_paragraph(words)
+        print("Sending sentence for analysis:", request.sentence)
 
-        print("Got here!")
+        # IF USING LLM_BIAS_DETECTION.PY
+        bias_data = analyze_paragraph(request.sentence)
+
+        print(bias_data)
+
+        save_to_cache(request.url, request.sentence_id, request.sentence, bias_data)
 
         # OPTIONAL: BIAS THRESHOLD FOR SERVER RESPONSE
-        filtered_bias_data = [item for item in bias_data if item['bias_rating']['bias_score'] >= 0.7]
-
-
-        #IF USING DUMMY_MODEL.PY
-        # words_list = words.split()
-        # bias_data = {}
-
-        # for index, word in enumerate(words_list):
-        #     bias_info = generate_bias(word)
-        #     print(bias_info)
-
-        #     # OPTIONAL: BIAS THRESHOLD FOR SERVER RESPONSE
-        #     # if bias_info['bias_score'] > 0.1:  
-        #     #     bias_data[index] = bias_info
-
-        #     bias_data[index] = bias_info
+        filtered_bias_data = [item for item in bias_data.get('bias_rating', []) if item.get('bias_score', 0) >= 0.7]
 
         print("Filtered data", filtered_bias_data)
 
-        return {"sentence:": words,"content_bias": filtered_bias_data}
+        return {
+            "url": request.url,
+            "sentence_id": request.sentence_id,
+            "sentence": request.sentence,
+            "content_bias": filtered_bias_data
+        }
     
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": "Error processing request", "detail": str(e)})
     
+@app.get("/health")
+def health_check():
+
+    current_time = datetime.now()
+    iso_format_time = current_time.isoformat()
+
+    return JSONResponse(content={"message":"Server is live.","time": iso_format_time}, status_code=200)
+
 @app.get("/")
 def root():
-    return JSONResponse(content={"detail": "Not Found"}, status_code=404)
+  return JSONResponse(content={"detail": "Not Found"}, status_code=404)

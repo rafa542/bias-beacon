@@ -36,18 +36,18 @@ def setup_openai_api():
 
 
 # Function to predict bias for each word in a paragraph
-def get_bias_prediction(word, sentence, client, bias_function):
+def get_bias_prediction(sentence, client, bias_function):
 
     response = client.chat.completions.create(
         model="gpt-4-0125-preview",
         messages=[
             {
                 "role": "system",
-                "content": "You are a bias detection assistant. Make sure to asses negative bias. Do not assess words in quotes. Do not assess names of individuals. Follow the AP Style Guidebook. Always print the bias score up to 3 significant figures, between 0 and 1. A float decimal is expected."
+                "content": "You are a bias detection assistant. Make sure to assess negative bias. Do not assess words in quotes. Do not assess names of individuals. Follow the AP Style Guidebook. Always print the bias score up to 3 significant figures, between 0 and 1. A float decimal is expected."
             },
             {
                 "role": "user",
-                "content": f"What is the bias score of the word: '{word}' in the context of sentence '{sentence}'."
+                "content": f"What is the bias score of the sentence '{sentence}'."
             }
         ],
         temperature=0,
@@ -56,10 +56,10 @@ def get_bias_prediction(word, sentence, client, bias_function):
         function_call="auto",
     )
 
-    return response.choices[0].message.function_call
+    return response.choices[0].message.function_call.arguments
 
 
-def analyze_paragraph(paragraph):
+def analyze_paragraph(sentence):
     
     setup_openai_api()
 
@@ -68,48 +68,42 @@ def analyze_paragraph(paragraph):
     # Function
     bias_function = [{
         "name": "bias_rating",
-        "description": "Identify the bias of the given word",
+        "description": "Identify the bias of a given sentence",
         "parameters": {
             "type": "object",
             "properties": {
+                "bias_type": {
+                    "type": "string",
+                    "description": "What is the bias type? Select from: Racial Bias, Linguistic Bias, Gender Bias, None."
+                },
                 "bias_score": {
                     "type": "integer",
                     "description": "A bias score from 0 to 1. Up to 3 significant figures. If the score is 0, output 0."
-                },
-                "bias_reason": {
-                    "type": "string",
-                    "description": "What is the reason for the bias score? Why is it biased?"
-                },
+                }
             },
-            "required": ["bias_score", "bias_reason"]
+            "required": ["bias_type", "bias_score"]
         }
     }]
 
-    words = paragraph.split()
-    processed_responses = []
+    print("Analyzing sentence for bias:", sentence)
     
-    for index, word in enumerate(words):
+    bias_info = get_bias_prediction(sentence, client, bias_function)
+    print("Bias analysis results:", bias_info) 
 
-        print("testing word ", word," in setnence:", paragraph)
-        
-        bias_info_str = get_bias_prediction(word, paragraph, client, bias_function)
-        print("Bias!!", bias_info_str) 
+    # Assuming bias_info_str is a JSON string (the actual format and parsing might differ based on the response)
+    bias_info_dict = json.loads(bias_info)
 
-        # Convert the string response to a dictionary
-        bias_info_dict = json.loads(bias_info_str.arguments)
+    print("Bias dict:", bias_info_dict)
 
-        print(bias_info_dict)
-
-        processed_response = {
-            "word_index_in_sentence": index,
-            "bias_rating": {
-                "bias_score": bias_info_dict["bias_score"],
-                "bias_reason": bias_info_dict["bias_reason"]
-            }
+    # Assuming the response includes a singular bias assessment for the entire sentence
+    processed_response = {
+        "bias_rating": {
+            "bias_type": bias_info_dict["bias_type"],
+            "bias_score": bias_info_dict["bias_score"]
         }
-        processed_responses.append(processed_response)
+    }
     
-    return processed_responses
+    return processed_response
 
 
 if __name__ == "__main__":

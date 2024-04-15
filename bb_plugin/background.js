@@ -41,7 +41,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.log("Analyzing content bias for indexed H1 words.");
 
     const promises = request.data.map((item, index) =>
-      fetch(`http://localhost:8000/api/contentbias`, {
+      // fetch(`https://biasbeacon.replit.app/api/contentbias`, {
+      fetch(`https://localhost:8000`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
