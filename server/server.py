@@ -144,7 +144,11 @@ async def analyze_bias(request: ContentBiasRequest):
         save_to_cache(request.url, request.sentence_id, request.sentence, bias_data)
 
         # OPTIONAL: BIAS THRESHOLD FOR SERVER RESPONSE
-        filtered_bias_data = [item for item in bias_data.get('bias_rating', []) if item.get('bias_score', 0) >= 0.7]
+        if bias_data.get('bias_rating', {}).get('bias_score', 0) >= 0.7:
+            filtered_bias_data = bias_data['bias_rating']
+        else:
+            # If the bias_score is not >= 0.7, return default values
+            filtered_bias_data = {"bias_type": "None", "bias_score": 0}
 
         print("Filtered data", filtered_bias_data)
 
