@@ -146,6 +146,7 @@ async def analyze_bias(request: ContentBiasRequest):
         # OPTIONAL: BIAS THRESHOLD FOR SERVER RESPONSE
         if bias_data.get('bias_rating', {}).get('bias_score', 0) >= 0.7:
             filtered_bias_data = bias_data['bias_rating']
+            
         else:
             # If the bias_score is not >= 0.7, return default values
             filtered_bias_data = {"bias_type": "None", "bias_score": 0}
