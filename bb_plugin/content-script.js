@@ -54,10 +54,36 @@ const mainElement = document.querySelector("main") || document.body; // Fallback
 const contentParent = getParentWithMostParagraphs(mainElement);
 
 if (contentParent) {
-  console.log("The likely body element:", contentParent);
+  console.log("The likely element with content:", contentParent);
 } else {
   console.log("No element with a significant number of paragraphs was found.");
 }
+
+function extractTextFromElement(element) {
+  let textContent = "";
+
+  function traverseChildren(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // Compress multiple spaces into one and trim each text node's content
+      textContent += node.textContent.replace(/\s+/g, " ").trim() + " ";
+    } else if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      node.tagName !== "SCRIPT" &&
+      node.tagName !== "STYLE"
+    ) {
+      // Skip <script> and <style> tags
+      Array.from(node.childNodes).forEach(traverseChildren);
+    }
+  }
+
+  traverseChildren(element);
+
+  return textContent.trim(); // Further trim the fully concatenated text
+}
+
+// Using the identified content parent element to extract text
+const contentParentText = extractTextFromElement(contentParent);
+console.log("Extracted text content:", contentParentText);
 
 function extractAndIndexContentAndFindH1() {
   let textContent = "";
@@ -110,37 +136,6 @@ console.log(
   JSON.stringify(nodeIndex.slice(0, 5), null, 2)
 );
 
-// FOR INDIVIDUAL WORDS
-// function h1_indexer(h1ContentArray) {
-//   let indexedWordsByH1 = []; // Initialize an empty array to hold the objects
-
-//   // Iterate over each content string in the h1ContentArray
-//   h1ContentArray.forEach((content, sentenceIndex) => {
-//     // Prepare the object structure for this H1 content
-//     let sentenceInfo = {
-//       sentenceIndex: sentenceIndex,
-//       sentence: content,
-//       sentenceInfo: [],
-//     };
-
-//     // Split content into words based on spaces
-//     const words = content.split(/\s+/);
-
-//     // Iterate over words to fill the sentenceInfo array with objects containing word and its position
-//     words.forEach((word, position) => {
-//       if (word.trim() !== "") {
-//         // Only add non-empty strings
-//         sentenceInfo.sentenceInfo.push({ index: position, word });
-//       }
-//     });
-
-//     // Add the structured object for this H1 content to the array
-//     indexedWordsByH1.push(sentenceInfo);
-//   });
-
-//   return indexedWordsByH1; // Return the array with structured objects
-// }
-
 function h1_indexer(h1ContentArray) {
   let indexedHeadlines = [];
 
@@ -165,43 +160,6 @@ console.log(
   "Indexed H1 Words Further Enhanced:",
   JSON.stringify(indexedH1Sentence, null, 2)
 );
-
-// FOR INDIVIDUAL WORDS
-// function highlightBiasedWords(indexedH1Sentence) {
-//   indexedH1Words.forEach((sentenceObj) => {
-//     // Extract the original sentence's words as an array
-//     const words = sentenceObj.sentence.split(/\s+/);
-
-//     // Rebuild the sentence, inserting spans where necessary
-//     const rebuiltSentence = words
-//       .map((word, index) => {
-//         // Find if this word has a bias rating
-//         const wordInfo = sentenceObj.sentenceInfo.find(
-//           (info) => info.index === index
-//         );
-//         if (
-//           wordInfo &&
-//           wordInfo.biasRatings &&
-//           wordInfo.biasRatings.length > 0
-//         ) {
-//           // Word has bias; wrap it in a span
-//           return `<span style='background-color: yellow;'>${word}</span>`;
-//         } else {
-//           return word; // Word does not have bias; leave it as is
-//         }
-//       })
-//       .join(" "); // Rejoin the words into a single string
-
-//     // Now, update the HTML of the corresponding <h1> tag
-//     const h1Nodes = document.querySelectorAll("h1");
-//     h1Nodes.forEach((node) => {
-//       if (node.innerText.trim() === sentenceObj.sentence.trim()) {
-//         console.log(`Highlighting biased words in sentence:`, node.innerText);
-//         node.innerHTML = rebuiltSentence;
-//       }
-//     });
-//   });
-// }
 
 function highlightBiasedSentences(indexedSentences, biasResults) {
   console.log("Attempting to highlight sentences...");
@@ -269,37 +227,67 @@ injectBiasInfoPopup();
 chrome.runtime.sendMessage(
   {
     action: "analyzeContentBias",
-    // Include the URL in the data sent to the background script
     data: {
       url: window.location.href.split("?")[0],
       sentences: indexedH1Sentence,
     },
   },
   function (response) {
+    console.log("Initial response", response); // Confirm the response structure
     if (response && response.results) {
-      response.results.forEach((result) => {
-        if (result.error) {
-          console.error(
-            `Error analyzing content bias for sentence index ${result.index}: ${result.error}`
-          );
-        } else {
-          // Find the corresponding sentence using sentenceIndex
-          console.log("Analysis successful");
-          console.log(result);
-          const sentenceObj = indexedSentences.find(
-            (s) => s.sentenceIndex === result.index
-          );
-          if (sentenceObj) {
-            console.log(
-              `Received analysis for sentence at index ${result.index}:`,
-              sentenceObj
-            );
+      console.log("Processing results..."); // Check if results processing begins
 
-            // Highlight the sentence based on the received analysis
-            highlightBiasedSentences([sentenceObj]);
+      console.log("Results:", response.results); // Diagnostic: Log the results directly to inspect their structure
+
+      let sentencesToHighlight = response.results
+        .filter((result) => {
+          // Only log and exclude if `error` is explicitly present
+          if (result.error) {
+            console.error(`Error in result:`, result.error); // Log any result errors
+            return false; // Exclude results with errors
           }
-        }
-      });
+          console.log("Indexed sentences for matching:", indexedH1Sentence);
+
+          return true; // Include results without errors
+        })
+        .map((result) => {
+          try {
+            console.log(
+              "Looking for match for ID:",
+              result.sentence_id,
+              "in",
+              indexedH1Sentence.map((s) => s.sentenceIndex)
+            );
+            const sentenceMatch = indexedH1Sentence.find(
+              // Changed to `indexedH1Sentence` based on your context
+              (sentence) => {
+                console.log(
+                  typeof result.sentence_id,
+                  typeof sentence.sentenceIndex
+                ); // Correctly placed inside where `sentence` is defined
+                return sentence.sentenceIndex === result.sentence_id;
+              }
+            );
+            if (!sentenceMatch) {
+              console.log(`No match for sentence ID: ${result.sentence_id}`); // Diagnostic for unmatched sentences
+              return null;
+            }
+            return { ...sentenceMatch, biasInfo: result };
+          } catch (error) {
+            console.error("Error processing result:", error);
+            return null;
+          }
+        })
+        .filter(Boolean);
+
+      console.log("Sentences to highlight", sentencesToHighlight); // Verify sentences to be highlighted
+
+      if (sentencesToHighlight.length > 0) {
+        console.log(`Highlighting ${sentencesToHighlight.length} sentences...`); // Confirm highlighting action
+        highlightBiasedSentences(sentencesToHighlight, response.results);
+      } else {
+        console.log("No sentences to highlight."); // Indicate no sentences met criteria
+      }
     } else {
       console.error(
         "Failed to get bias analysis results without specific error details."
