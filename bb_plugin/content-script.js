@@ -17,34 +17,47 @@ SECTION:
 
 */
 
-// SEND TO URL BACKGROUND.JS TO CHECK IF IT EXISTS IN CACHE
+// SCRAPE WEBSITE CONTENT WORDS, CLEAN IT, INDEX WORDS (BACKGROUND.JS CAN ACCESS THIS)
 
-function checkCacheAndSendURL() {
-  const currentURL = window.location.href;
-  console.log("Sending URL to background.js to check cache", currentURL);
+function getParentWithMostParagraphs(element) {
+  let bestParent = null;
+  let highestParagraphCount = 0;
+  const paragraphElements = element.querySelectorAll("p");
 
-  chrome.runtime.sendMessage(
-    {
-      action: "checkCache",
-      url: currentURL,
-    },
-    function (response) {
-      // Check if the response object exists to handle potential messaging errors
-      if (response && response.isCached) {
-        console.log("URL content is cached. Using cached data.");
-      } else if (response && response.error) {
-        console.error("Error checking cache:", response.error);
-      } else {
-        console.log(
-          "URL content not in cache or error occurred. Extracting content."
-        );
-        extractCleanContentAndSend();
-      }
+  // Create a map to count paragraphs per parent
+  const parentParagraphCountMap = new Map();
+
+  paragraphElements.forEach((paragraph) => {
+    const parentElement = paragraph.parentElement;
+    if (parentParagraphCountMap.has(parentElement)) {
+      parentParagraphCountMap.set(
+        parentElement,
+        parentParagraphCountMap.get(parentElement) + 1
+      );
+    } else {
+      parentParagraphCountMap.set(parentElement, 1);
     }
-  );
+  });
+
+  // Determine which parent has the highest count of <p> tags
+  for (let [parent, count] of parentParagraphCountMap) {
+    if (count > highestParagraphCount) {
+      highestParagraphCount = count;
+      bestParent = parent;
+    }
+  }
+
+  return bestParent;
 }
 
-// SCRAPE WEBSITE CONTENT WORDS, CLEAN IT, INDEX WORDS (BACKGROUND.JS CAN ACCESS THIS)
+const mainElement = document.querySelector("main") || document.body; // Fallback to document.body if <main> is not present
+const contentParent = getParentWithMostParagraphs(mainElement);
+
+if (contentParent) {
+  console.log("The likely body element:", contentParent);
+} else {
+  console.log("No element with a significant number of paragraphs was found.");
+}
 
 function extractAndIndexContentAndFindH1() {
   let textContent = "";
@@ -150,7 +163,7 @@ let indexedH1Sentence = h1_indexer(h1Content);
 
 console.log(
   "Indexed H1 Words Further Enhanced:",
-  JSON.stringify(indexedH1Words, null, 2)
+  JSON.stringify(indexedH1Sentence, null, 2)
 );
 
 // FOR INDIVIDUAL WORDS
@@ -190,18 +203,62 @@ console.log(
 //   });
 // }
 
-function highlightBiasedSentences(indexedSentences) {
+function highlightBiasedSentences(indexedSentences, biasResults) {
+  console.log("Attempting to highlight sentences...");
+  console.log("Indexed sentences:", indexedSentences);
+  console.log("Bias results:", biasResults);
+
   indexedSentences.forEach((sentenceObj) => {
-    // Highlight the entire sentence
+    const biasInfo = biasResults.find(
+      (result) => result.sentence_id === sentenceObj.sentenceIndex
+    );
+
+    console.log("Searching for bias info:", biasInfo);
+
     const h1Nodes = document.querySelectorAll("h1");
+    console.log(`Found ${h1Nodes.length} H1 nodes`);
+
     h1Nodes.forEach((node) => {
-      if (node.innerText.trim() === sentenceObj.sentence.trim()) {
-        console.log(`Highlighting sentence:`, node.innerText);
-        node.innerHTML = `<span style='background-color: yellow;'>${node.innerHTML}</span>`;
+      console.log(
+        `Comparing: [${node.innerText.trim()}] to [${sentenceObj.sentence.trim()}]`
+      );
+
+      if (node.innerText.trim() === sentenceObj.sentence.trim() && biasInfo) {
+        console.log(`Highlighting sentence: ${node.innerText}`);
+
+        const highlightSpan = document.createElement("span");
+        highlightSpan.style.backgroundColor = "yellow";
+        highlightSpan.setAttribute(
+          "data-bias-type",
+          biasInfo.bias_rating.bias_type
+        );
+        highlightSpan.setAttribute(
+          "data-bias-score",
+          biasInfo.bias_rating.bias_score.toString()
+        );
+        highlightSpan.innerHTML = node.innerHTML;
+
+        node.innerHTML = "";
+        node.appendChild(highlightSpan);
+      } else {
+        console.log("No match or no bias info found.");
       }
     });
   });
 }
+
+function injectBiasInfoPopup() {
+  fetch(chrome.runtime.getURL("bias-info.html"))
+    .then((response) => response.text())
+    .then((data) => {
+      document.body.insertAdjacentHTML("beforeend", data);
+      const script = document.createElement("script");
+      script.src = chrome.runtime.getURL("bias-info.js");
+      document.body.appendChild(script);
+    });
+}
+
+injectBiasInfoPopup();
 
 /*
 ########################
@@ -214,7 +271,7 @@ chrome.runtime.sendMessage(
     action: "analyzeContentBias",
     // Include the URL in the data sent to the background script
     data: {
-      url: window.location.href.split("?")[0], // Excludes query parameters
+      url: window.location.href.split("?")[0],
       sentences: indexedH1Sentence,
     },
   },
@@ -227,6 +284,8 @@ chrome.runtime.sendMessage(
           );
         } else {
           // Find the corresponding sentence using sentenceIndex
+          console.log("Analysis successful");
+          console.log(result);
           const sentenceObj = indexedSentences.find(
             (s) => s.sentenceIndex === result.index
           );

@@ -1,1 +1,134 @@
-[{"url": "http://example.com", "date_processed": "2024-04-14T12:00:00", "content": [{"sentence_id": 1, "bias_rating": {"bias_type": "Type A", "bias_score": 0.75}}, {"sentence_id": 2, "bias_rating": {"bias_type": "Type B", "bias_score": 0.65}}]}, {"url": "http://anotherexample.com", "date_processed": "2024-04-15T12:00:00", "content": [{"sentence_id": 1, "sentence": "sentence", "bias_rating": {"bias_type": "Type C", "bias_score": 0.8}}]}, {"url": "http://example2.com", "date_processed": "2024-04-14T19:28:16.378583", "content": [{"sentence_id": 1, "sentence": "This is a test sentence to analyze for bias.", "bias_rating": {"bias_type": "None", "bias_score": 0}}]}, {"url": "http://example3.com", "date_processed": "2024-04-14T20:56:12.718747", "content": [{"sentence_id": 1, "sentence": "This is a test sentence to analyze for bias.", "bias_rating": {"bias_type": "None", "bias_score": 0}}]}]
+[
+  {
+    "url": "https://abcnews.go.com/International/wireStory/venezuelans-living-abroad-vote-president-year-meet-absentee-109213659",
+    "date_processed": "2024-04-14T21:27:58.078580",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Venezuelans living abroad want to vote for president this year but can't meet absentee requirements",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://abcnews.go.com/International/wireStory/china-detains-2-tourist-boat-capsizing-killed-12-109213281",
+    "date_processed": "2024-04-14T22:10:09.428695",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "China detains 2 over tourist boat capsizing that killed 12, citing lack of safety equipment",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://abcnews.go.com/GMA/Culture/candace-cameron-bure-expresses-outrage-quiet-set-documentary/story",
+    "date_processed": "2024-04-14T22:12:28.256012",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Candace Cameron Bure expresses outrage over 'Quiet on Set' revelations, calling them 'horrific'",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://www.nytimes.com/2024/02/02/upshot/special-elections-democrats-turnout-2024.html",
+    "date_processed": "2024-04-14T22:14:03.654942",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Turnout Data Reveals the Core of Democrats\u2019 Success in Special Elections",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://nypost.com/2024/04/09/us-news/residents-in-frantic-fight-to-keep-trumps-name-on-luxury-high-rise/",
+    "date_processed": "2024-04-14T22:14:23.063769",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Westchester County residents in frantic fight to keep Trump\u2019s name on luxury 40-story building: \u2018Needs to stop\u2019",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://nypost.com/2024/04/02/opinion/sam-bankman-fried-plays-dumb-post-sentence-as-all-the-friends-he-bought-evaporate/",
+    "date_processed": "2024-04-14T22:19:01.673416",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Sam Bankman-Fried cynically plays dumb as all the friends he bought evaporate",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://abcnews.go.com/International/wireStory/colombias-capital-starts-rationing-water-after-reservoirs-hit-109182381",
+    "date_processed": "2024-04-14T22:25:47.032632",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Colombia's capital starts rationing water after historically low water levels",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://abcnews.go.com/US/librarians-face-threats-lawsuits-jail-fears-ongoing-book/story",
+    "date_processed": "2024-04-14T22:30:07.163714",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Librarians say they face threats, lawsuits, jail fears over ongoing book battles",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://abcnews.go.com/Business/electric-sports-cars-starting-performance-arms-race-engineer/story",
+    "date_processed": "2024-04-14T22:30:43.355617",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Electric sports cars are starting a 'performance arms race,' engineer says",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://www.washingtonpost.com/politics/2024/04/05/trump-ukraine-secret-plan/",
+    "date_processed": "2024-04-14T22:34:19.085451",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Inside Donald Trump\u2019s secret, long-shot plan to end the war in Ukraine",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://nypost.com/2024/04/14/us-news/2-men-seen-on-camera-toppling-boulders-at-lake-mead-national-park/",
+    "date_processed": "2024-04-14T22:35:38.704038",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Two men topple boulders at Nevada national park as young girl watches in fear: \u2018Daddy, don\u2019t fall!\u2019",
+        "bias_rating": { "bias_type": "None", "bias_score": 0 }
+      }
+    ]
+  },
+  {
+    "url": "https://nypost.com/2024/04/14/sports/christen-harper-parties-with-pals-before-wedding-to-jared-goff/",
+    "date_processed": "2024-04-15T18:03:12.060881",
+    "content": [
+      {
+        "sentence_id": 0,
+        "sentence": "Christen Harper parties with pals on bachelorette trip before wedding to Jared Goff",
+        "bias_rating": { "bias_type": "None", "bias_score": 0.8 }
+      }
+    ]
+  }
+]
