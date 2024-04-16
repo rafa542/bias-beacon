@@ -6,7 +6,12 @@ from datetime import datetime
 from typing import List
 
 from model.dummy_model import generate_bias
-from model.gpt_bias_detection import analyze_paragraph, get_bias_prediction, setup_openai_api
+from model.gpt_bias_detection import OAI_analyze_paragraph, OAI_get_bias_prediction, setup_openai_api
+
+from  model.custom_bias_detection import CUSTOM_analyze_sentence
+
+## model = "CUSTOM" or "GPT"
+_biasModel = "CUSTOM" 
 
 app = FastAPI()
 
@@ -138,19 +143,24 @@ async def analyze_bias(request: ContentBiasRequest):
         print("Sending sentence for analysis:", request.sentence)
 
         # IF USING LLM_BIAS_DETECTION.PY
-        bias_data = analyze_paragraph(request.sentence)
+        if _biasModel == "GPT":
+            bias_data = OAI_analyze_paragraph(request.sentence)
+        elif _biasModel == "CUSTOM":
+            bias_data = CUSTOM_analyze_sentence(request.sentence)
+        else:
+            print("No model detected.")
 
         print(bias_data)
 
         save_to_cache(request.url, request.sentence_id, request.sentence, bias_data)
 
         # OPTIONAL: BIAS THRESHOLD FOR SERVER RESPONSE
-        if bias_data.get('bias_rating', {}).get('bias_score', 0) >= 0.7:
+        if bias_data.get('bias_rating', {}).get('bias_score', 0) >= 0.65:
             filtered_bias_data = bias_data['bias_rating']
             
         else:
             # If the bias_score is not >= 0.7, return default values
-            filtered_bias_data = {"bias_type": "None", "bias_score": 0.7}
+            filtered_bias_data = {"bias_type": "None", "bias_score": 0}
 
         print("Filtered data", filtered_bias_data)
 

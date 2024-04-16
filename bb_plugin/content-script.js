@@ -244,22 +244,17 @@ console.log(
 function highlightBiasedSentences(biasResults) {
   console.log("Attempting to highlight sentences...");
   console.log("Bias results:", biasResults);
-  console.log("Type of biasResults:", typeof biasResults);
 
-  let resultsToProcess = Array.isArray(biasResults)
-    ? biasResults
-    : [biasResults];
-  resultsToProcess.forEach((result) => {
-    const { index, data } = result;
-    console.log(`Processing result for index: ${index}`, data);
+  // Directly process the biasResults object
+  const { sentenceIndex, data } = biasResults;
+  console.log(`Processing result for sentence index: ${sentenceIndex}`, data);
 
-    const sentenceIndex = data.sentenceIndex;
-    console.log(`Looking for element with sentence index: ${sentenceIndex}`);
+  const biasType = data.content_bias.bias_type;
+  const biasScore = data.content_bias.bias_score;
+  console.log(`Bias Type: ${biasType}, Bias Score: ${biasScore}`);
 
-    const biasType = data.content_bias.bias_type;
-    const biasScore = data.content_bias.bias_score;
-    console.log(`Bias Type: ${biasType}, Bias Score: ${biasScore}`);
-
+  // Check if biasScore is 0.8 or above
+  if (biasScore >= 0.7) {
     // Find the element with the matching `data-sentence-index` attribute
     const attributeSelector = `[data-sentence-index='${sentenceIndex}']`;
     console.log(`Attribute selector: ${attributeSelector}`);
@@ -279,7 +274,11 @@ function highlightBiasedSentences(biasResults) {
     } else {
       console.log(`No element found for sentence index: ${sentenceIndex}`);
     }
-  });
+  } else {
+    console.log(
+      `Skipping sentence at index: ${sentenceIndex} due to low bias score.`
+    );
+  }
 }
 
 function injectBiasInfoPopup() {
