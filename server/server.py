@@ -114,8 +114,8 @@ def save_to_cache(url: str, sentence_id: int, sentence_text: str, bias_data: dic
 
 @app.post("/api/cache")
 async def cache_api(request: CacheCheckRequest):
-
     try:
+        print("REceived request cache", request)
         url = request.url
         cached_content = check_url_in_cache(url)
 
@@ -134,6 +134,7 @@ async def cache_api(request: CacheCheckRequest):
 @app.post("/api/contentbias")  
 async def analyze_bias(request: ContentBiasRequest):
     try:
+        print("REceived request analyze", request)
         print("Sending sentence for analysis:", request.sentence)
 
         # IF USING LLM_BIAS_DETECTION.PY
@@ -149,13 +150,13 @@ async def analyze_bias(request: ContentBiasRequest):
             
         else:
             # If the bias_score is not >= 0.7, return default values
-            filtered_bias_data = {"bias_type": "None", "bias_score": 0}
+            filtered_bias_data = {"bias_type": "None", "bias_score": 0.7}
 
         print("Filtered data", filtered_bias_data)
 
         return {
             "url": request.url,
-            "sentence_id": request.sentence_id,
+            "sentenceIndex": request.sentence_id,
             "sentence": request.sentence,
             "content_bias": filtered_bias_data
         }

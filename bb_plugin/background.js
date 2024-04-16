@@ -50,7 +50,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 if (sender.tab?.id) {
                   chrome.tabs.sendMessage(sender.tab.id, {
                     action: "contentBiasResult",
-                    result: { index: item.sentenceIndex, data },
+                    result: { sentenceIndex: item.sentenceIndex, data },
                   });
                 }
               })

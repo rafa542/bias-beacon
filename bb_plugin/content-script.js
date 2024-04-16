@@ -137,9 +137,9 @@ function extractAndIndexTextNodesV2(element) {
         sentence: textContent,
         tagName: node.tagName,
       });
-      console.log(
-        `Indexed: '${textContent}' at Index: ${sentenceIndex} in <${node.tagName}> directly`
-      );
+      // console.log(
+      //   `Indexed: '${textContent}' at Index: ${sentenceIndex} in <${node.tagName}> directly`
+      // );
       sentenceIndex++;
     }
 
@@ -241,47 +241,44 @@ console.log(
 ##################################
 */
 
-function highlightBiasedSentences(indexedSentences, biasResults) {
+function highlightBiasedSentences(biasResults) {
   console.log("Attempting to highlight sentences...");
-  console.log("Indexed sentences:", indexedSentences);
   console.log("Bias results:", biasResults);
+  console.log("Type of biasResults:", typeof biasResults);
 
-  indexedSentences.forEach((sentenceObj) => {
-    const biasInfo = biasResults.find(
-      (result) => result.sentence_id === sentenceObj.sentenceIndex
-    );
+  let resultsToProcess = Array.isArray(biasResults)
+    ? biasResults
+    : [biasResults];
+  resultsToProcess.forEach((result) => {
+    const { index, data } = result;
+    console.log(`Processing result for index: ${index}`, data);
 
-    console.log("Searching for bias info:", biasInfo);
+    const sentenceIndex = data.sentenceIndex;
+    console.log(`Looking for element with sentence index: ${sentenceIndex}`);
 
-    const h1Nodes = document.querySelectorAll("h1");
-    console.log(`Found ${h1Nodes.length} H1 nodes`);
+    const biasType = data.content_bias.bias_type;
+    const biasScore = data.content_bias.bias_score;
+    console.log(`Bias Type: ${biasType}, Bias Score: ${biasScore}`);
 
-    h1Nodes.forEach((node) => {
-      console.log(
-        `Comparing: [${node.innerText.trim()}] to [${sentenceObj.sentence.trim()}]`
-      );
+    // Find the element with the matching `data-sentence-index` attribute
+    const attributeSelector = `[data-sentence-index='${sentenceIndex}']`;
+    console.log(`Attribute selector: ${attributeSelector}`);
 
-      if (node.innerText.trim() === sentenceObj.sentence.trim() && biasInfo) {
-        console.log(`Highlighting sentence: ${node.innerText}`);
+    const elementToHighlight = document.querySelector(attributeSelector);
+    console.log("Element to highlight:", elementToHighlight);
 
-        const highlightSpan = document.createElement("span");
-        highlightSpan.style.backgroundColor = "yellow";
-        highlightSpan.setAttribute(
-          "data-bias-type",
-          biasInfo.bias_rating.bias_type
-        );
-        highlightSpan.setAttribute(
-          "data-bias-score",
-          biasInfo.bias_rating.bias_score.toString()
-        );
-        highlightSpan.innerHTML = node.innerHTML;
+    if (elementToHighlight) {
+      console.log(`Highlighting sentence at index: ${sentenceIndex}`);
 
-        node.innerHTML = "";
-        node.appendChild(highlightSpan);
-      } else {
-        console.log("No match or no bias info found.");
-      }
-    });
+      // Add bias information attributes
+      elementToHighlight.setAttribute("data-bias-type", biasType);
+      elementToHighlight.setAttribute("data-bias-score", biasScore.toString()); // Ensure score is a string
+
+      // Apply highlighting style
+      elementToHighlight.style.backgroundColor = "yellow";
+    } else {
+      console.log(`No element found for sentence index: ${sentenceIndex}`);
+    }
   });
 }
 
@@ -304,59 +301,84 @@ injectBiasInfoPopup();
 ##################################
 */
 
-chrome.runtime.sendMessage(
-  {
-    action: "analyzeContentBias",
-    data: {
-      url: window.location.href.split("?")[0],
-      sentences: indexedSentences,
-    },
+// chrome.runtime.sendMessage(
+//   {
+//     action: "analyzeContentBias",
+//     data: {
+//       url: window.location.href.split("?")[0],
+//       sentences: indexedSentences,
+//     },
+//   },
+//   function (response) {
+//     console.log("Initial response", response); // Confirm the response structure
+//     if (response && response.results) {
+//       console.log("Processing results...");
+
+//       // Match the response results with the indexed sentences based on the index
+//       let sentencesToHighlight = response.results
+//         .filter((result) => !result.error) // Filter out any errors
+//         .map((result) => {
+//           // Find the corresponding sentence object by sentence index
+//           const sentenceObj = indexedSentences.find(
+//             (sentence) => sentence.index === result.sentence_id
+//           );
+//           if (sentenceObj) {
+//             // Combine sentence object with bias information
+//             return { ...sentenceObj, biasInfo: result.bias_rating };
+//           }
+//           return null;
+//         })
+//         .filter(Boolean); // Remove any nulls that may have been added due to unmatched sentences
+
+//       console.log("Sentences to highlight:", sentencesToHighlight);
+
+//       if (sentencesToHighlight.length > 0) {
+//         console.log(`Highlighting ${sentencesToHighlight.length} sentences...`);
+//         // Call a function to apply highlighting to sentences
+//         highlightBiasedSentences(sentencesToHighlight);
+//       } else {
+//         console.log("No sentences to highlight.");
+//       }
+//     } else {
+//       console.error(
+//         "Failed to get bias analysis results without specific error details."
+//       );
+//     }
+//   }
+// );
+
+// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+//   if (message.action === "contentBiasResult") {
+//     const result = message.result;
+//     // Now process this result
+//     // For example, highlight the sentence or display bias info
+//     console.log("Received bias analysis result:", result);
+//     // Assume `highlightBiasedSentence` is a function you've written to handle the highlighting
+//     highlightBiasedSentence(result);
+//   }
+// });
+
+chrome.runtime.sendMessage({
+  action: "analyzeContentBias",
+  data: {
+    url: window.location.href.split("?")[0],
+    sentences: indexedSentences,
   },
-  function (response) {
-    console.log("Initial response", response); // Confirm the response structure
-    if (response && response.results) {
-      console.log("Processing results...");
-
-      // Match the response results with the indexed sentences based on the index
-      let sentencesToHighlight = response.results
-        .filter((result) => !result.error) // Filter out any errors
-        .map((result) => {
-          // Find the corresponding sentence object by sentence index
-          const sentenceObj = indexedSentences.find(
-            (sentence) => sentence.index === result.sentence_id
-          );
-          if (sentenceObj) {
-            // Combine sentence object with bias information
-            return { ...sentenceObj, biasInfo: result.bias_rating };
-          }
-          return null;
-        })
-        .filter(Boolean); // Remove any nulls that may have been added due to unmatched sentences
-
-      console.log("Sentences to highlight:", sentencesToHighlight);
-
-      if (sentencesToHighlight.length > 0) {
-        console.log(`Highlighting ${sentencesToHighlight.length} sentences...`);
-        // Call a function to apply highlighting to sentences
-        highlightBiasedSentences(sentencesToHighlight);
-      } else {
-        console.log("No sentences to highlight.");
-      }
-    } else {
-      console.error(
-        "Failed to get bias analysis results without specific error details."
-      );
-    }
-  }
-);
+});
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "contentBiasResult") {
     const result = message.result;
-    // Now process this result
-    // For example, highlight the sentence or display bias info
     console.log("Received bias analysis result:", result);
-    // Assume `highlightBiasedSentence` is a function you've written to handle the highlighting
-    highlightBiasedSentence(result);
+    // Process the result to highlight biased sentences
+    highlightBiasedSentences(result);
+  } else if (message.action === "contentBiasError") {
+    console.error(
+      "Error in bias analysis:",
+      message.error,
+      "for index:",
+      message.index
+    );
+    // Optionally handle the error, such as displaying an error message
   }
 });
