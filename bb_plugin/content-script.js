@@ -5,85 +5,169 @@
 console.log("content-script.js loaded.");
 
 /*
-
-##################
-SECTION:
-- EXTRACT URL
-- SEND TO URL BACKGROUND.JS TO CHECK IF IT EXISTS IN CACHE
-- SCRAPE WEBSITE CONTENT WORDS, CLEAN IT, INDEX WORDS (BACKGROUND.JS CAN ACCESS THIS)
-- RECEIVE RESULTS FROM BACKGROUND.JS ASYNCHRONOUSLY
-- INDEXED WORDS ARE MATCHED, <SPAN> TAGS ARE APPLIED TO THE INDEXED WORD AND THE BACKGROUND IS HIGHLIGHTED IN YELLOW
-##################
-
+##################################
+### SCRAPE BODY CONTENT
+##################################
 */
 
-// SCRAPE WEBSITE CONTENT WORDS, CLEAN IT, INDEX WORDS (BACKGROUND.JS CAN ACCESS THIS)
+// function getParentWithMostParagraphs(element) {
+//   let bestParent = null;
+//   let highestParagraphCount = 0;
+//   const paragraphElements = element.querySelectorAll("p");
 
-function getParentWithMostParagraphs(element) {
-  let bestParent = null;
-  let highestParagraphCount = 0;
-  const paragraphElements = element.querySelectorAll("p");
+//   // Create a map to count paragraphs per parent
+//   const parentParagraphCountMap = new Map();
 
-  // Create a map to count paragraphs per parent
-  const parentParagraphCountMap = new Map();
+//   paragraphElements.forEach((paragraph) => {
+//     const parentElement = paragraph.parentElement;
+//     if (parentParagraphCountMap.has(parentElement)) {
+//       parentParagraphCountMap.set(
+//         parentElement,
+//         parentParagraphCountMap.get(parentElement) + 1
+//       );
+//     } else {
+//       parentParagraphCountMap.set(parentElement, 1);
+//     }
+//   });
 
-  paragraphElements.forEach((paragraph) => {
-    const parentElement = paragraph.parentElement;
-    if (parentParagraphCountMap.has(parentElement)) {
-      parentParagraphCountMap.set(
-        parentElement,
-        parentParagraphCountMap.get(parentElement) + 1
-      );
-    } else {
-      parentParagraphCountMap.set(parentElement, 1);
+//   // Determine which parent has the highest count of <p> tags
+//   for (let [parent, count] of parentParagraphCountMap) {
+//     if (count > highestParagraphCount) {
+//       highestParagraphCount = count;
+//       bestParent = parent;
+//     }
+//   }
+
+//   return bestParent;
+// }
+
+// const mainElement = document.querySelector("main") || document.body; // Fallback to document.body if <main> is not present
+// const contentParent = getParentWithMostParagraphs(mainElement);
+
+// if (contentParent) {
+//   console.log("The likely element with content:", contentParent);
+// } else {
+//   console.log("No element with a significant number of paragraphs was found.");
+// }
+
+// function extractAndIndexTextIncludingLinks(element) {
+//   let index = 0; // Initialize an index for all text-containing elements
+//   let indexedSentences = []; // Array to hold the indexed sentence data
+
+//   console.log("Starting traversal and indexing...");
+
+//   function traverseAndProcess(node) {
+//     let directTextContent = "";
+//     let containsLink = false;
+//     Array.from(node.childNodes).forEach((child) => {
+//       if (child.nodeType === Node.TEXT_NODE && child.textContent.trim()) {
+//         // Accumulate direct text content for non-empty text nodes
+//         directTextContent += ` ${child.textContent.trim()}`;
+//       } else if (child.nodeType === Node.ELEMENT_NODE) {
+//         if (child.tagName === "A") {
+//           // If the element is an <a> tag, process its text content specifically
+//           directTextContent += ` <a href="${
+//             child.href
+//           }">${child.textContent.trim()}</a>`;
+//           containsLink = true;
+//         } else {
+//           // Recursively process other elements
+//           traverseAndProcess(child);
+//         }
+//       }
+//     });
+
+//     if (directTextContent.trim()) {
+//       // If there's accumulated direct text content (including <a> tags), index this node
+//       console.log(`Indexing element: ${node.tagName}, Index: ${index}`);
+//       node.setAttribute(`data-sentence-index-${index}`, "");
+//       indexedSentences.push({
+//         index: index,
+//         text: directTextContent.trim(),
+//         containsLink: containsLink,
+//       });
+//       index++; // Increment index for the next text-containing node
+//     }
+//   }
+
+//   traverseAndProcess(element);
+
+//   console.log("Traversal and indexing complete.");
+//   return indexedSentences; // Return the collected and indexed sentence data
+// }
+
+// // Use the content parent determined by your heuristic to extract and index sentences
+// const indexedSentences = extractAndIndexTextIncludingLinks(contentParent);
+// console.log("Indexed Sentences Object:", indexedSentences);
+
+function extractAndIndexTextNodesV2(element) {
+  let sentenceIndex = 0; // Initialize sentence index
+  const indexedSentences = []; // Initialize array to store indexed sentences
+
+  console.log("Starting traversal and indexing...");
+
+  function traverseAndIndexNodes(node) {
+    // This function will be used to check if a node directly contains text or an anchor (<a>) with text
+    function hasDirectTextOrLink(node) {
+      for (let child of node.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE && child.textContent.trim()) {
+          // Node directly contains text
+          return true;
+        } else if (
+          child.nodeType === Node.ELEMENT_NODE &&
+          child.tagName === "A" &&
+          child.textContent.trim()
+        ) {
+          // Node directly contains an <a> tag with text
+          return true;
+        }
+      }
+      return false; // No direct text or anchor (<a>) with text found
     }
-  });
 
-  // Determine which parent has the highest count of <p> tags
-  for (let [parent, count] of parentParagraphCountMap) {
-    if (count > highestParagraphCount) {
-      highestParagraphCount = count;
-      bestParent = parent;
-    }
-  }
-
-  return bestParent;
-}
-
-const mainElement = document.querySelector("main") || document.body; // Fallback to document.body if <main> is not present
-const contentParent = getParentWithMostParagraphs(mainElement);
-
-if (contentParent) {
-  console.log("The likely element with content:", contentParent);
-} else {
-  console.log("No element with a significant number of paragraphs was found.");
-}
-
-function extractTextFromElement(element) {
-  let textContent = "";
-
-  function traverseChildren(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      // Compress multiple spaces into one and trim each text node's content
-      textContent += node.textContent.replace(/\s+/g, " ").trim() + " ";
-    } else if (
+    if (
       node.nodeType === Node.ELEMENT_NODE &&
-      node.tagName !== "SCRIPT" &&
-      node.tagName !== "STYLE"
+      !["SCRIPT", "STYLE"].includes(node.tagName) &&
+      hasDirectTextOrLink(node)
     ) {
-      // Skip <script> and <style> tags
-      Array.from(node.childNodes).forEach(traverseChildren);
+      const textContent = node.textContent.trim();
+      node.setAttribute(`data-sentence-index`, sentenceIndex);
+      indexedSentences.push({
+        sentenceIndex: sentenceIndex,
+        sentence: textContent,
+        tagName: node.tagName,
+      });
+      console.log(
+        `Indexed: '${textContent}' at Index: ${sentenceIndex} in <${node.tagName}> directly`
+      );
+      sentenceIndex++;
     }
+
+    // Traverse child nodes
+    Array.from(node.childNodes).forEach((childNode) => {
+      if (!["SCRIPT", "STYLE", "A"].includes(childNode.tagName)) {
+        traverseAndIndexNodes(childNode);
+      }
+    });
   }
 
-  traverseChildren(element);
+  traverseAndIndexNodes(element);
 
-  return textContent.trim(); // Further trim the fully concatenated text
+  console.log("Traversal and indexing complete.");
+
+  // Returning the indexed sentences array
+  return indexedSentences;
 }
 
-// Using the identified content parent element to extract text
-const contentParentText = extractTextFromElement(contentParent);
-console.log("Extracted text content:", contentParentText);
+const mainContent = document.querySelector("main") || document.body; // Using the main content area or the body as a fallback
+const indexedSentences = extractAndIndexTextNodesV2(mainContent);
+console.log("Indexed elements with text content:", indexedSentences);
+
+/*
+##################################
+### SCRAPE HEADER CONTENT
+##################################
+*/
 
 function extractAndIndexContentAndFindH1() {
   let textContent = "";
@@ -126,16 +210,6 @@ let { textContent, nodeIndex, h1Content } = extractAndIndexContentAndFindH1();
 // Log the content of all <h1> tags
 console.log("H1 Content:", h1Content.join(", "));
 
-// View textContent and nodeIndex in console
-console.log(
-  "First 500 characters of extracted content:",
-  textContent.slice(0, 3000)
-);
-console.log(
-  "Details of first few indexed nodes:",
-  JSON.stringify(nodeIndex.slice(0, 5), null, 2)
-);
-
 function h1_indexer(h1ContentArray) {
   let indexedHeadlines = [];
 
@@ -160,6 +234,12 @@ console.log(
   "Indexed H1 Words Further Enhanced:",
   JSON.stringify(indexedH1Sentence, null, 2)
 );
+
+/*
+##################################
+### HIGHLIGHT BIASED SENTENCES
+##################################
+*/
 
 function highlightBiasedSentences(indexedSentences, biasResults) {
   console.log("Attempting to highlight sentences...");
@@ -219,9 +299,9 @@ function injectBiasInfoPopup() {
 injectBiasInfoPopup();
 
 /*
-########################
+##################################
 ### RUNTIME SECTION
-########################
+##################################
 */
 
 chrome.runtime.sendMessage(
@@ -229,64 +309,38 @@ chrome.runtime.sendMessage(
     action: "analyzeContentBias",
     data: {
       url: window.location.href.split("?")[0],
-      sentences: indexedH1Sentence,
+      sentences: indexedSentences,
     },
   },
   function (response) {
     console.log("Initial response", response); // Confirm the response structure
     if (response && response.results) {
-      console.log("Processing results..."); // Check if results processing begins
+      console.log("Processing results...");
 
-      console.log("Results:", response.results); // Diagnostic: Log the results directly to inspect their structure
-
+      // Match the response results with the indexed sentences based on the index
       let sentencesToHighlight = response.results
-        .filter((result) => {
-          // Only log and exclude if `error` is explicitly present
-          if (result.error) {
-            console.error(`Error in result:`, result.error); // Log any result errors
-            return false; // Exclude results with errors
-          }
-          console.log("Indexed sentences for matching:", indexedH1Sentence);
-
-          return true; // Include results without errors
-        })
+        .filter((result) => !result.error) // Filter out any errors
         .map((result) => {
-          try {
-            console.log(
-              "Looking for match for ID:",
-              result.sentence_id,
-              "in",
-              indexedH1Sentence.map((s) => s.sentenceIndex)
-            );
-            const sentenceMatch = indexedH1Sentence.find(
-              // Changed to `indexedH1Sentence` based on your context
-              (sentence) => {
-                console.log(
-                  typeof result.sentence_id,
-                  typeof sentence.sentenceIndex
-                ); // Correctly placed inside where `sentence` is defined
-                return sentence.sentenceIndex === result.sentence_id;
-              }
-            );
-            if (!sentenceMatch) {
-              console.log(`No match for sentence ID: ${result.sentence_id}`); // Diagnostic for unmatched sentences
-              return null;
-            }
-            return { ...sentenceMatch, biasInfo: result };
-          } catch (error) {
-            console.error("Error processing result:", error);
-            return null;
+          // Find the corresponding sentence object by sentence index
+          const sentenceObj = indexedSentences.find(
+            (sentence) => sentence.index === result.sentence_id
+          );
+          if (sentenceObj) {
+            // Combine sentence object with bias information
+            return { ...sentenceObj, biasInfo: result.bias_rating };
           }
+          return null;
         })
-        .filter(Boolean);
+        .filter(Boolean); // Remove any nulls that may have been added due to unmatched sentences
 
-      console.log("Sentences to highlight", sentencesToHighlight); // Verify sentences to be highlighted
+      console.log("Sentences to highlight:", sentencesToHighlight);
 
       if (sentencesToHighlight.length > 0) {
-        console.log(`Highlighting ${sentencesToHighlight.length} sentences...`); // Confirm highlighting action
-        highlightBiasedSentences(sentencesToHighlight, response.results);
+        console.log(`Highlighting ${sentencesToHighlight.length} sentences...`);
+        // Call a function to apply highlighting to sentences
+        highlightBiasedSentences(sentencesToHighlight);
       } else {
-        console.log("No sentences to highlight."); // Indicate no sentences met criteria
+        console.log("No sentences to highlight.");
       }
     } else {
       console.error(
@@ -295,3 +349,14 @@ chrome.runtime.sendMessage(
     }
   }
 );
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "contentBiasResult") {
+    const result = message.result;
+    // Now process this result
+    // For example, highlight the sentence or display bias info
+    console.log("Received bias analysis result:", result);
+    // Assume `highlightBiasedSentence` is a function you've written to handle the highlighting
+    highlightBiasedSentence(result);
+  }
+});

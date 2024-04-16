@@ -12,33 +12,33 @@ console.log("Background.js loaded.");
 
 // Listener for messages from content scripts
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  // Handle "analyzeContentBias" action
   if (request.action === "analyzeContentBias") {
     console.log("Analyzing content bias for sentences.");
 
-    // First, check if the URL is in the cache
     fetch(`http://localhost:8000/api/cache`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: request.data.url }),
     })
       .then((response) => response.json())
       .then((cacheData) => {
         if (cacheData.isCached) {
           console.log("URL is cached:", request.data.url);
-          // If data is cached, immediately return the cached results
-          sendResponse({ results: cacheData.content });
+          // Simulate sending each cached result back to the content script
+          cacheData.content.forEach((cachedResult) => {
+            if (sender.tab?.id) {
+              chrome.tabs.sendMessage(sender.tab.id, {
+                action: "contentBiasResult",
+                result: cachedResult,
+              });
+            }
+          });
         } else {
           console.log("URL is not cached:", request.data.url);
-          // If data is not cached, analyze content bias for each sentence
-          const promises = request.data.sentences.map((item) =>
+          request.data.sentences.forEach((item) => {
             fetch(`http://localhost:8000/api/contentbias`, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 url: request.data.url,
                 sentence_id: item.sentenceIndex,
@@ -46,27 +46,37 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
               }),
             })
               .then((response) => response.json())
-              .then((data) => ({ index: item.sentenceIndex, data }))
-              .catch((error) => ({
-                index: item.sentenceIndex,
-                error: error.toString(),
-              }))
-          );
-
-          // Wait for all content bias analyses to complete
-          Promise.all(promises).then((results) => {
-            sendResponse({ results });
+              .then((data) => {
+                if (sender.tab?.id) {
+                  chrome.tabs.sendMessage(sender.tab.id, {
+                    action: "contentBiasResult",
+                    result: { index: item.sentenceIndex, data },
+                  });
+                }
+              })
+              .catch((error) => {
+                if (sender.tab?.id) {
+                  chrome.tabs.sendMessage(sender.tab.id, {
+                    action: "contentBiasError",
+                    error: error.toString(),
+                    index: item.sentenceIndex,
+                  });
+                }
+              });
           });
         }
       })
       .catch((error) => {
         console.error("Error checking cache or analyzing content bias:", error);
-        sendResponse({
-          isCached: false,
-          error: "Failed to check cache or analyze content bias",
-        });
+        // General error handling, might indicate issues with the cache checking request
+        if (sender.tab?.id) {
+          chrome.tabs.sendMessage(sender.tab.id, {
+            action: "contentBiasError",
+            error: "Failed to check cache or start content bias analysis",
+          });
+        }
       });
 
-    return true; // keep the messaging channel open for the asynchronous response
+    return true; // Keep the messaging channel open for asynchronous response
   }
 });
