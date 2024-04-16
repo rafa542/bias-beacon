@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "analyzeContentBias") {
     console.log("Analyzing content bias for sentences.");
 
-    fetch(`http://localhost:8000/api/cache`, {
+    fetch(`https://biasbeacon.replit.app/api/cache`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: request.data.url }),
@@ -36,7 +36,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         } else {
           console.log("URL is not cached:", request.data.url);
           request.data.sentences.forEach((item) => {
-            fetch(`http://localhost:8000/api/contentbias`, {
+            fetch(`https://biasbeacon.replit.app/api/contentbias`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
